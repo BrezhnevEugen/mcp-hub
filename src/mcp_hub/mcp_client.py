@@ -20,6 +20,18 @@ class MCPError(RuntimeError):
     pass
 
 
+def tools_to_mappings(tools: list[ToolInfo]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for tool in tools:
+        item: dict[str, Any] = {"name": tool.name}
+        if tool.description:
+            item["description"] = tool.description
+        if tool.input_schema:
+            item["inputSchema"] = tool.input_schema
+        result.append(item)
+    return sorted(result, key=lambda item: item["name"])
+
+
 def list_tools(server: ServerConfig, timeout: float = 10.0) -> list[ToolInfo]:
     if server.transport != "stdio":
         raise MCPError(f"unsupported transport: {server.transport}")

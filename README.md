@@ -2,12 +2,12 @@
 
 Personal registry and operations CLI for MCP servers.
 
-MCP Hub keeps a local catalog of MCP servers, groups them into access profiles, checks whether they respond to `tools/list`, and exports client config for agents.
+MCP Hub keeps a local catalog of MCP servers, stores their discovered tools/actions, groups servers into access profiles, checks whether they respond to `tools/list`, and exports client config for agents.
 
 ## MVP scope
 
 - Register stdio MCP servers.
-- Store server metadata in `registry.yaml`.
+- Store server metadata and discovered actions in `registry.yaml`.
 - Store access profiles in `profiles.yaml`.
 - Inspect a server by starting it and calling `tools/list`.
 - Export `mcpServers` JSON for Codex, Claude Desktop, and Cursor-compatible clients.
@@ -99,6 +99,9 @@ servers:
     tags:
       - media
       - transcript
+    tools:
+      - name: transcript
+        description: Read YouTube subtitles and transcripts.
 ```
 
 `profiles.yaml`:
@@ -118,7 +121,7 @@ profiles:
 
 ## Periodic capability checks
 
-`mcp-hub scan` stores the last known tool names in `tool-snapshots.yaml` and reports changes on the next run:
+`mcp-hub inspect` and `mcp-hub scan` store the current tool/action metadata on each server entry in `registry.yaml`. `mcp-hub scan` also stores the last known tool names in `tool-snapshots.yaml` and reports changes on the next run:
 
 ```bash
 mcp-hub scan --profile content

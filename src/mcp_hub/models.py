@@ -15,9 +15,13 @@ class ServerConfig:
     tags: list[str] = field(default_factory=list)
     description: str = ""
     enabled: bool = True
+    tools: list[dict[str, Any]] = field(default_factory=list)
 
     def with_enabled(self, enabled: bool) -> "ServerConfig":
         return replace(self, enabled=enabled)
+
+    def with_tools(self, tools: list[dict[str, Any]]) -> "ServerConfig":
+        return replace(self, tools=_normalize_tools(self.name, tools))
 
     @classmethod
     def from_mapping(cls, name: str, data: dict[str, Any]) -> "ServerConfig":
@@ -53,6 +57,8 @@ class ServerConfig:
         if not isinstance(tags, list) or not all(isinstance(item, str) for item in tags):
             raise ValueError(f"server {name!r} tags must be a list of strings")
 
+        tools = _normalize_tools(name, data.get("tools", []))
+
         return cls(
             name=name,
             command=command,
@@ -63,6 +69,7 @@ class ServerConfig:
             tags=tags,
             description=str(data.get("description", "")),
             enabled=bool(data.get("enabled", True)),
+            tools=tools,
         )
 
     def to_mapping(self) -> dict[str, Any]:
@@ -82,4 +89,27 @@ class ServerConfig:
             data["description"] = self.description
         if self.env:
             data["env"] = self.env
+        if self.tools:
+            data["tools"] = self.tools
         return data
+
+
+def _normalize_tools(server_name: str, tools: object) -> list[dict[str, Any]]:
+    if tools in (None, ""):
+        return []
+    if not isinstance(tools, list):
+        raise ValueError(f"server {server_name!r} tools must be a list")
+
+    normalized: list[dict[str, Any]] = []
+    for tool in tools:
+        if not isinstance(tool, dict) or not isinstance(tool.get("name"), str) or not tool["name"]:
+            raise ValueError(f"server {server_name!r} tools must contain objects with names")
+        item: dict[str, Any] = {"name": tool["name"]}
+        description = tool.get("description", "")
+        if description:
+            item["description"] = str(description)
+        input_schema = tool.get("inputSchema", tool.get("input_schema"))
+        if isinstance(input_schema, dict):
+            item["inputSchema"] = input_schema
+        normalized.append(item)
+    return sorted(normalized, key=lambda item: item["name"])

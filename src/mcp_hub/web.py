@@ -18,7 +18,7 @@ from .importers import (
     import_codex_servers,
     import_cursor_servers,
 )
-from .mcp_client import list_tools
+from .mcp_client import list_tools, tools_to_mappings
 from .models import ServerConfig
 from .scanner import compare_tools
 
@@ -284,6 +284,7 @@ def scan_profile(hub: HubConfig, profile: str | None) -> dict[str, Any]:
 
     snapshots = hub.load_tool_snapshots()
     results: list[dict[str, Any]] = []
+    registry_changed = False
     for server in selected:
         if server.transport != "stdio":
             results.append({"server": server.name, "status": "skipped", "reason": "remote transport"})
@@ -296,6 +297,8 @@ def scan_profile(hub: HubConfig, profile: str | None) -> dict[str, Any]:
         previous = snapshots.get(server.name)
         changes = compare_tools(server.name, tools, previous)
         snapshots[server.name] = changes.current
+        servers[server.name] = server.with_tools(tools_to_mappings(tools))
+        registry_changed = True
         results.append(
             {
                 "server": server.name,
@@ -308,6 +311,8 @@ def scan_profile(hub: HubConfig, profile: str | None) -> dict[str, Any]:
             }
         )
     hub.save_tool_snapshots(snapshots)
+    if registry_changed:
+        hub.save_servers(servers)
     return {"results": results}
 
 
@@ -336,6 +341,15 @@ def _server_payload(server: ServerConfig, profiles: list[str]) -> dict[str, Any]
         "description": server.description,
         "envKeys": sorted(server.env),
         "headerKeys": sorted(server.headers),
+        "toolCount": len(server.tools),
+        "tools": [
+            {
+                "name": tool["name"],
+                "description": str(tool.get("description", "")),
+                "hasInputSchema": isinstance(tool.get("inputSchema"), dict),
+            }
+            for tool in server.tools
+        ],
     }
 
 

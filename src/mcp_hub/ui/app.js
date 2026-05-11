@@ -107,11 +107,11 @@ function renderClientSelects() {
 function renderCatalogStats() {
   const enabled = state.servers.filter((server) => server.enabled).length;
   const stdio = state.servers.filter((server) => server.transport === "stdio").length;
-  const remote = state.servers.filter((server) => server.transport !== "stdio").length;
+  const actions = state.servers.reduce((total, server) => total + (server.toolCount || 0), 0);
   el.serverCount.textContent = String(state.servers.length);
   el.enabledCount.textContent = String(enabled);
   el.stdioCount.textContent = String(stdio);
-  el.remoteCount.textContent = String(remote);
+  el.remoteCount.textContent = String(actions);
 }
 
 function renderProfileFilter() {
@@ -132,7 +132,8 @@ function renderProfileFilter() {
 function renderServers() {
   const query = el.searchBox.value.trim().toLowerCase();
   const servers = serversForProfile(activeProfile).filter((server) => {
-    const haystack = `${server.name} ${server.transport} ${server.target} ${server.profiles.join(" ")}`.toLowerCase();
+    const toolNames = (server.tools || []).map((tool) => tool.name).join(" ");
+    const haystack = `${server.name} ${server.transport} ${server.target} ${server.profiles.join(" ")} ${toolNames}`.toLowerCase();
     return haystack.includes(query);
   });
   el.activeTitle.textContent = "MCP Servers";
@@ -147,6 +148,7 @@ function renderServers() {
       <td><div class="server-name">${escapeHtml(server.name)}</div></td>
       <td>${escapeHtml(server.transport)}</td>
       <td><div class="target mono" title="${escapeAttr(server.target)}">${escapeHtml(server.target)}</div></td>
+      <td>${server.toolCount || 0}</td>
       <td>${renderPills(server.profiles)}</td>
       <td><span class="${server.enabled ? "state-on" : "state-off"}">${server.enabled ? "enabled" : "disabled"}</span></td>
       <td><button class="toggle-button">${server.enabled ? "Disable" : "Enable"}</button></td>
@@ -182,21 +184,44 @@ function renderDetails() {
     ["Target", server.target],
     ["Profiles", server.profiles.join(", ") || "-"],
     ["Tags", server.tags.join(", ") || "-"],
+    ["Actions", String(server.toolCount || 0)],
     ["Env", server.envKeys.join(", ") || "-"],
     ["Headers", server.headerKeys.join(", ") || "-"],
     ["Description", server.description || "-"],
   ];
+  const toolList = renderToolList(server.tools || []);
   el.detailsBody.innerHTML = items.map(([label, value]) => `
     <div class="detail-item">
       <div class="detail-label">${escapeHtml(label)}</div>
       <div class="detail-value mono">${escapeHtml(value)}</div>
     </div>
-  `).join("");
+  `).join("") + `
+    <div class="detail-item full-span">
+      <div class="detail-label">Available Actions</div>
+      ${toolList}
+    </div>
+  `;
 }
 
 function renderPills(values) {
   if (!values.length) return `<span class="subtle">-</span>`;
   return `<div class="pill-list">${values.map((value) => `<span class="pill">${escapeHtml(value)}</span>`).join("")}</div>`;
+}
+
+function renderToolList(tools) {
+  if (!tools.length) {
+    return `<div class="empty-actions">No actions scanned yet</div>`;
+  }
+  return `
+    <div class="tool-list">
+      ${tools.map((tool) => `
+        <div class="tool-item">
+          <div class="tool-name mono">${escapeHtml(tool.name)}</div>
+          <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
 }
 
 async function importServers() {
@@ -276,6 +301,7 @@ async function scanProfile() {
   const broken = result.results.filter((item) => item.status === "broken").length;
   const changed = result.results.filter((item) => item.changed).length;
   showToast(`Scan: ${changed} changed, ${broken} broken`);
+  await loadState();
 }
 
 function showToast(message) {

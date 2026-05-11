@@ -258,7 +258,7 @@ summary {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 860px;
+  min-width: 920px;
 }
 
 th,
@@ -349,6 +349,34 @@ tr.selected td {
 
 .detail-value {
   word-break: break-word;
+}
+
+.full-span {
+  grid-column: 1 / -1;
+}
+
+.tool-list {
+  display: grid;
+  gap: 8px;
+}
+
+.tool-item {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 9px 10px;
+}
+
+.tool-name {
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+
+.tool-description,
+.empty-actions {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 dialog {

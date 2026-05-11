@@ -15,7 +15,7 @@ from .importers import (
     import_codex_servers,
     import_cursor_servers,
 )
-from .mcp_client import MCPError, list_tools
+from .mcp_client import MCPError, list_tools, tools_to_mappings
 from .models import ServerConfig
 from .scanner import compare_tools
 from .web import serve_ui
@@ -172,8 +172,9 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         if not server.enabled:
             raise ValueError(f"server is disabled: {server.name}")
         tools = list_tools(server)
+        _store_server_tools(hub, server.name, tools_to_mappings(tools))
         if args.json:
-            print(json.dumps([tool.__dict__ for tool in tools], indent=2, ensure_ascii=False))
+            print(json.dumps(tools_to_mappings(tools), indent=2, ensure_ascii=False))
         else:
             print(f"{server.name}: {len(tools)} tool(s)")
             for tool in tools:
@@ -238,6 +239,14 @@ def _get_server(hub: HubConfig, name: str) -> ServerConfig:
         return servers[name]
     except KeyError as exc:
         raise ValueError(f"unknown server: {name}") from exc
+
+
+def _store_server_tools(hub: HubConfig, name: str, tools: list[dict[str, object]]) -> None:
+    servers = hub.load_servers()
+    if name not in servers:
+        return
+    servers[name] = servers[name].with_tools(tools)
+    hub.save_servers(servers)
 
 
 def _servers_for_status(hub: HubConfig, profile: str | None) -> list[ServerConfig]:
@@ -345,11 +354,13 @@ def _redact_sensitive_value(value: str) -> str:
 
 
 def _scan_tools(hub: HubConfig, profile: str | None) -> list[dict[str, object]]:
-    servers = _servers_for_status(hub, profile)
+    servers = hub.load_servers()
+    selected = _servers_for_status(hub, profile)
     snapshots = hub.load_tool_snapshots()
     results: list[dict[str, object]] = []
+    registry_changed = False
 
-    for server in servers:
+    for server in selected:
         try:
             tools = list_tools(server, timeout=5)
         except Exception as exc:
@@ -359,6 +370,8 @@ def _scan_tools(hub: HubConfig, profile: str | None) -> list[dict[str, object]]:
         previous = snapshots.get(server.name)
         changes = compare_tools(server.name, tools, previous)
         snapshots[server.name] = changes.current
+        servers[server.name] = server.with_tools(tools_to_mappings(tools))
+        registry_changed = True
         results.append(
             {
                 "server": server.name,
@@ -372,6 +385,8 @@ def _scan_tools(hub: HubConfig, profile: str | None) -> list[dict[str, object]]:
         )
 
     hub.save_tool_snapshots(snapshots)
+    if registry_changed:
+        hub.save_servers(servers)
     return results
 
 

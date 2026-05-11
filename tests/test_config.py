@@ -54,3 +54,32 @@ def test_remote_server_roundtrip(tmp_path: Path) -> None:
     assert server.transport == "http"
     assert server.url == "https://example.com/mcp"
     assert server.headers == {"Authorization": "Bearer secret"}
+
+
+def test_server_tools_roundtrip(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers(
+        {
+            "demo": ServerConfig(
+                name="demo",
+                command=["demo"],
+                tools=[
+                    {
+                        "name": "search",
+                        "description": "Search records",
+                        "inputSchema": {"type": "object"},
+                    }
+                ],
+            )
+        }
+    )
+
+    server = hub.load_servers()["demo"]
+
+    assert server.tools == [
+        {
+            "name": "search",
+            "description": "Search records",
+            "inputSchema": {"type": "object"},
+        }
+    ]
