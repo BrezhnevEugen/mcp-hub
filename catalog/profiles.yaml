@@ -1,0 +1,25 @@
+version: 1
+profiles:
+  claude:
+    servers:
+    - MCP_DOCKER
+    - knowledge-platform
+    - lightrag
+    - yt-sub
+  content:
+    servers:
+    - yt-sub
+  cursor:
+    servers:
+    - MCP_DOCKER
+    - lightrag
+    - stitch
+    - stitch-cursor-integration
+  all:
+    servers:
+    - MCP_DOCKER
+    - knowledge-platform
+    - lightrag
+    - stitch
+    - stitch-cursor-integration
+    - yt-sub

@@ -6,6 +6,7 @@ from pathlib import Path
 import shlex
 import sys
 
+from .catalog import generate_catalog
 from .config import HubConfig
 from .importers import (
     DEFAULT_CLAUDE_DESKTOP_CONFIG,
@@ -78,6 +79,11 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     import_parser.add_argument("--profile", help="Add imported servers to a profile.")
+
+    catalog_parser = subparsers.add_parser("catalog", help="Build portable catalog files for agents.")
+    catalog_subparsers = catalog_parser.add_subparsers(dest="catalog_command", required=True)
+    catalog_generate = catalog_subparsers.add_parser("generate", help="Generate catalog/servers.yaml and catalog/profiles.yaml.")
+    catalog_generate.add_argument("--output", default="catalog", help="Output directory. Defaults to ./catalog.")
 
     args = parser.parse_args(argv)
     hub = HubConfig() if args.home is None else HubConfig(config_dir=Path(args.home).expanduser())
@@ -222,6 +228,18 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         names = ", ".join(sorted(imported)) if imported else "(none)"
         print(f"imported {len(imported)} server(s): {names}")
         return 0
+
+    if args.subcommand == "catalog":
+        if args.catalog_command == "generate":
+            servers_path, profiles_path = generate_catalog(
+                servers=hub.load_servers(),
+                profiles=hub.load_profiles(),
+                output_dir=Path(args.output),
+            )
+            print(f"generated {servers_path}")
+            print(f"generated {profiles_path}")
+            return 0
+        raise ValueError(f"unknown catalog command: {args.catalog_command}")
 
     raise ValueError(f"unknown command: {args.subcommand}")
 

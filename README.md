@@ -36,6 +36,7 @@ mcp-hub inspect yt-sub
 mcp-hub profile content yt-sub
 mcp-hub scan --profile content
 mcp-hub export codex --profile content
+mcp-hub catalog generate
 ```
 
 Import existing Codex MCP servers:
@@ -61,6 +62,14 @@ Import a project-level Cursor MCP file:
 ```bash
 mcp-hub import cursor --path /path/to/project/.cursor/mcp.json --profile project
 ```
+
+Generate a portable catalog for agents:
+
+```bash
+mcp-hub catalog generate
+```
+
+The generated `catalog/servers.yaml` and `catalog/profiles.yaml` files are meant to be committed. Agents can read them from GitHub, compare against their own MCP config, and install the missing servers. Secret values are replaced with `${MCP_HUB_SECRET_...}` placeholders.
 
 Temporarily disable a server without deleting it:
 

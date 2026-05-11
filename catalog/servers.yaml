@@ -1,0 +1,48 @@
+version: 1
+servers:
+  MCP_DOCKER:
+    transport: stdio
+    command:
+    - docker
+    - mcp
+    - gateway
+    - run
+    description: Imported from Cursor MCP config.
+  knowledge-platform:
+    transport: stdio
+    command:
+    - npx
+    - -y
+    - mcp-remote
+    - https://wikiai.kvzrm.ru/mcp
+    - --header
+    - 'Authorization: Bearer ${MCP_HUB_SECRET_KNOWLEDGE_PLATFORM_ARG}'
+    description: Imported from Claude Desktop config.
+  lightrag:
+    transport: stdio
+    command:
+    - python3
+    - /Users/eugenbrezhnev/dev_soft/LightRAG-main/mcp_server.py
+    - --lightrag-url
+    - http://localhost:9621
+    description: Imported from Cursor MCP config.
+  stitch:
+    transport: http
+    url: https://stitch.googleapis.com/mcp
+    headers:
+      X-Goog-Api-Key: ${MCP_HUB_SECRET_STITCH_X_GOOG_API_KEY}
+    description: Imported from Cursor MCP config.
+  stitch-cursor-integration:
+    transport: stdio
+    command:
+    - node
+    - /Users/eugenbrezhnev/Разрабка окружения/cursor/stitch/dist/index.js
+    env:
+      NODE_ENV: production
+    description: Imported from Cursor settings.
+  yt-sub:
+    transport: stdio
+    command:
+    - /Applications/YT-sub.app/Contents/MacOS/YT-sub
+    - --mcp
+    description: Imported from Claude Desktop config.
