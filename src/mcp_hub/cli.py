@@ -15,7 +15,7 @@ from .importers import (
     import_codex_servers,
     import_cursor_servers,
 )
-from .mcp_client import MCPError, list_tools, tools_to_mappings
+from .mcp_client import MCPError, list_tools, run_http_stdio_proxy, tools_to_mappings
 from .models import ServerConfig
 from .scanner import compare_tools
 from .web import serve_ui
@@ -67,6 +67,9 @@ def main(argv: list[str] | None = None) -> int:
     export_parser = subparsers.add_parser("export", help="Export MCP config for a client.")
     export_parser.add_argument("client", choices=["codex", "claude-desktop", "cursor"])
     export_parser.add_argument("--profile", default="default")
+
+    proxy_parser = subparsers.add_parser("proxy", help="Bridge an HTTP MCP server from the hub over stdio.")
+    proxy_parser.add_argument("name")
 
     import_parser = subparsers.add_parser("import", help="Import MCP servers from another client.")
     import_parser.add_argument("client", choices=["codex", "claude-desktop", "cursor"])
@@ -215,6 +218,11 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
     if args.subcommand == "export":
         payload = _export_config(hub, args.profile)
         print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.subcommand == "proxy":
+        server = _get_server(hub, args.name)
+        run_http_stdio_proxy(server)
         return 0
 
     if args.subcommand == "import":

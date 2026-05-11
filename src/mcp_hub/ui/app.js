@@ -281,11 +281,11 @@ const DOCS = {
     },
     {
       title: "Tokens and Local Trust",
-      body: "This UI runs in your local environment and intentionally shows real tokens and headers.",
+      body: "This UI runs in your local environment and masks token-like values in normal server views.",
       items: [
-        "Tokens in command args, URLs, headers, and env values are visible in the server card.",
+        "Command args, URLs, headers, and env values are redacted when they look sensitive.",
         "Exports preserve those values so agents can actually connect to the MCP servers.",
-        "Treat screenshots and exported JSON as sensitive when tokens are present.",
+        "Treat exported JSON as sensitive when tokens are present.",
       ],
     },
     {
@@ -313,7 +313,7 @@ const DOCS = {
       body: "Каталог служит источником правды, а затем нужные наборы серверов передаются наружу в агентские клиенты.",
       items: [
         "Импортируй существующие MCP-серверы из Codex, Claude Desktop или Cursor.",
-        "Открывай карточку сервера, чтобы увидеть транспорт, команду или URL, токены, профили, теги и доступные навыки.",
+        "Открывай карточку сервера, чтобы увидеть транспорт, команду или URL, профили, теги и доступные навыки.",
         "Периодически сканируй профили, чтобы обновлять список навыков и видеть изменения.",
         "Экспортируй профиль, когда агенту нужно выдать выбранный набор серверов.",
       ],
@@ -338,11 +338,11 @@ const DOCS = {
     },
     {
       title: "Токены и локальное доверие",
-      body: "Этот UI работает в твоем локальном окружении и намеренно показывает реальные токены и заголовки.",
+      body: "Этот UI работает в твоем локальном окружении и маскирует значения, похожие на токены.",
       items: [
-        "Токены в command args, URL, headers и env видны в карточке сервера.",
+        "Command args, URL, headers и env редактируются, если выглядят чувствительными.",
         "Экспорт сохраняет эти значения, чтобы агенты действительно могли подключиться к MCP-серверам.",
-        "Скриншоты и экспортированный JSON стоит считать чувствительными, если в них есть токены.",
+        "Экспортированный JSON стоит считать чувствительным, если в нем есть токены.",
       ],
     },
     {

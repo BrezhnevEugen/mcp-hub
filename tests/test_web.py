@@ -1,3 +1,4 @@
+import json
 from importlib import resources
 from pathlib import Path
 
@@ -126,7 +127,7 @@ def test_build_state_includes_server_tools(tmp_path: Path) -> None:
     ]
 
 
-def test_build_state_keeps_access_tokens_visible(tmp_path: Path) -> None:
+def test_build_state_redacts_access_tokens(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.save_servers(
         {
@@ -136,6 +137,8 @@ def test_build_state_keeps_access_tokens_visible(tmp_path: Path) -> None:
                     "npx",
                     "mcp-remote",
                     "https://example.com/mcp",
+                    "--api-key",
+                    "arg-secret",
                     "--header",
                     "Authorization: Bearer secret-token",
                 ],
@@ -154,10 +157,16 @@ def test_build_state_keeps_access_tokens_visible(tmp_path: Path) -> None:
     state = build_state(hub)
     servers = {server["name"]: server for server in state["servers"]}
 
-    assert "secret-token" in servers["demo"]["target"]
-    assert servers["demo"]["env"] == {"API_TOKEN": "env-secret"}
-    assert "query-secret" in servers["remote"]["url"]
-    assert servers["remote"]["headers"] == {"Authorization": "Bearer header-secret"}
+    serialized = json.dumps(state)
+    assert "secret-token" not in serialized
+    assert "arg-secret" not in serialized
+    assert "env-secret" not in serialized
+    assert "query-secret" not in serialized
+    assert "header-secret" not in serialized
+    assert servers["demo"]["target"].endswith("Authorization: Bearer [redacted]'")
+    assert servers["demo"]["env"] == {"API_TOKEN": "[redacted]"}
+    assert servers["remote"]["url"] == "https://example.com/mcp?token=%5Bredacted%5D"
+    assert servers["remote"]["headers"] == {"Authorization": "Bearer [redacted]"}
 
 
 def test_export_profile_supports_synthetic_all(tmp_path: Path) -> None:

@@ -4,6 +4,7 @@ import json
 import os
 import ssl
 import subprocess
+import sys
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -171,7 +172,7 @@ def _post_json_rpc(
     server: ServerConfig,
     message: dict[str, Any],
     timeout: float,
-    expected_id: int | None = None,
+    expected_id: object | None = None,
     session_id: str | None = None,
 ) -> tuple[dict[str, Any], str | None]:
     headers = {
@@ -202,7 +203,57 @@ def _post_json_rpc(
         raise MCPError(str(exc.reason)) from exc
 
 
-def _parse_http_json_rpc(body: str, expected_id: int | None) -> dict[str, Any]:
+def run_http_stdio_proxy(
+    server: ServerConfig,
+    stdin: Any = None,
+    stdout: Any = None,
+    timeout: float = 60.0,
+) -> None:
+    if server.transport != "http":
+        raise MCPError(f"proxy only supports http transport: {server.transport}")
+    input_stream = stdin or sys.stdin
+    output_stream = stdout or sys.stdout
+    session_id: str | None = None
+    for line in input_stream:
+        if not line.strip():
+            continue
+        try:
+            message = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(message, dict):
+            continue
+        expected_id = message.get("id") if "id" in message else None
+        try:
+            response, session_id = _post_json_rpc(
+                server,
+                message,
+                timeout,
+                expected_id=expected_id if isinstance(expected_id, (int, str)) else None,
+                session_id=session_id,
+            )
+        except Exception as exc:
+            if expected_id is not None:
+                _write_json_rpc(output_stream, _error_response(expected_id, str(exc)))
+            continue
+        if expected_id is not None:
+            _write_json_rpc(output_stream, response)
+
+
+def _write_json_rpc(output_stream: Any, message: dict[str, Any]) -> None:
+    output_stream.write(json.dumps(message, ensure_ascii=False) + "\n")
+    output_stream.flush()
+
+
+def _error_response(message_id: object, message: str) -> dict[str, Any]:
+    return {
+        "jsonrpc": "2.0",
+        "id": message_id,
+        "error": {"code": -32000, "message": message},
+    }
+
+
+def _parse_http_json_rpc(body: str, expected_id: object | None) -> dict[str, Any]:
     messages = _json_rpc_messages(body)
     if expected_id is not None:
         messages = [message for message in messages if message.get("id") == expected_id]

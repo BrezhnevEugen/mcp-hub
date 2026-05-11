@@ -8,7 +8,7 @@ from importlib import resources
 from pathlib import Path
 import shlex
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlparse, urlunparse
 
 from . import __version__
 from .config import HubConfig
@@ -394,12 +394,12 @@ def _server_payload(server: ServerConfig, profiles: list[str]) -> dict[str, Any]
         "transport": server.transport,
         "target": _format_server_target(server),
         "command": _format_command(server.command) if server.command else "",
-        "url": server.url if server.url else "",
+        "url": _redact_url(server.url) if server.url else "",
         "tags": server.tags,
         "profiles": sorted(profiles),
         "description": server.description,
-        "env": dict(sorted(server.env.items())),
-        "headers": dict(sorted(server.headers.items())),
+        "env": _redact_map(server.env, redact_all=False),
+        "headers": _redact_map(server.headers, redact_all=True),
         "envKeys": sorted(server.env),
         "headerKeys": sorted(server.headers),
         "toolCount": len(server.tools),
@@ -470,12 +470,88 @@ def _export_server_config(server: ServerConfig) -> dict[str, object]:
 
 def _format_server_target(server: ServerConfig) -> str:
     if server.transport == "http":
-        return server.url
+        return _redact_url(server.url)
     return _format_command(server.command)
 
 
 def _format_command(command: list[str]) -> str:
-    return " ".join(_shell_quote(arg) for arg in command)
+    return " ".join(_shell_quote(arg) for arg in _redact_command(command))
+
+
+SENSITIVE_KEY_MARKERS = ("token", "secret", "password", "authorization", "api_key", "apikey", "api-key")
+SENSITIVE_VALUE_MARKERS = (
+    "authorization: bearer ",
+    "bearer ",
+    "api_key=",
+    "apikey=",
+    "api-key=",
+    "token=",
+    "secret=",
+    "password=",
+)
+
+
+def _redact_map(values: dict[str, str], redact_all: bool) -> dict[str, str]:
+    return {
+        key: _redact_value(key, value, force=redact_all)
+        for key, value in sorted(values.items())
+    }
+
+
+def _redact_command(command: list[str]) -> list[str]:
+    redacted: list[str] = []
+    redact_next = False
+    for arg in command:
+        if redact_next:
+            redacted.append("[redacted]")
+            redact_next = False
+            continue
+        if _looks_sensitive(arg):
+            redacted.append(_redact_value("", arg))
+            continue
+        if _is_sensitive_key(arg):
+            if "=" in arg:
+                key, _value = arg.split("=", 1)
+                redacted.append(f"{key}=[redacted]")
+            else:
+                redacted.append(arg)
+                redact_next = True
+            continue
+        redacted.append(_redact_value("", arg))
+    return redacted
+
+
+def _redact_value(key: str, value: str, force: bool = False) -> str:
+    if force or _is_sensitive_key(key) or _looks_sensitive(value):
+        if value.lower().startswith("bearer "):
+            return "Bearer [redacted]"
+        if value.lower().startswith("authorization: bearer "):
+            return "Authorization: Bearer [redacted]"
+        return "[redacted]"
+    return value
+
+
+def _redact_url(value: str) -> str:
+    if not value:
+        return value
+    parsed = urlparse(value)
+    if not parsed.query:
+        return _redact_value("", value)
+    query = [
+        (key, "[redacted]" if _is_sensitive_key(key) or _looks_sensitive(query_value) else query_value)
+        for key, query_value in parse_qsl(parsed.query, keep_blank_values=True)
+    ]
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
+
+def _is_sensitive_key(key: str) -> bool:
+    lowered = key.lower()
+    return any(marker in lowered for marker in SENSITIVE_KEY_MARKERS)
+
+
+def _looks_sensitive(value: str) -> bool:
+    lowered = value.lower()
+    return any(marker in lowered for marker in SENSITIVE_VALUE_MARKERS)
 
 
 def _shell_quote(value: str) -> str:

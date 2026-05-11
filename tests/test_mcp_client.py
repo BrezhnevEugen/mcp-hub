@@ -1,7 +1,8 @@
+import io
 import json
 from pathlib import Path
 
-from mcp_hub.mcp_client import list_tools
+from mcp_hub.mcp_client import list_tools, run_http_stdio_proxy
 from mcp_hub.models import ServerConfig
 
 
@@ -110,4 +111,70 @@ def test_list_tools_reads_http_mcp_response(monkeypatch) -> None:
         "tools/list",
     ]
     assert requests[0].headers["Authorization"] == "Bearer secret"
+    assert requests[2].headers["Mcp-session-id"] == "session-1"
+
+
+def test_run_http_stdio_proxy_forwards_json_rpc(monkeypatch) -> None:
+    requests = []
+
+    class FakeResponse:
+        def __init__(self, body: dict | None, headers: dict[str, str] | None = None) -> None:
+            self.body = body
+            self.headers = headers or {}
+
+        def __enter__(self) -> "FakeResponse":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def read(self) -> bytes:
+            if self.body is None:
+                return b""
+            return json.dumps(self.body).encode("utf-8")
+
+    def fake_urlopen(request, timeout: float, context=None):
+        requests.append(request)
+        message = json.loads(request.data.decode("utf-8"))
+        if message.get("method") == "initialize":
+            return FakeResponse(
+                {"jsonrpc": "2.0", "id": message["id"], "result": {"capabilities": {}}},
+                {"Mcp-Session-Id": "session-1"},
+            )
+        if message.get("method") == "notifications/initialized":
+            return FakeResponse(None)
+        if message.get("method") == "tools/list":
+            return FakeResponse(
+                {
+                    "jsonrpc": "2.0",
+                    "id": message["id"],
+                    "result": {"tools": [{"name": "remote_demo"}]},
+                }
+            )
+        raise AssertionError(f"unexpected method: {message.get('method')}")
+
+    monkeypatch.setattr("mcp_hub.mcp_client.urlopen", fake_urlopen)
+    server = ServerConfig(
+        name="remote",
+        transport="http",
+        url="https://example.com/mcp",
+        headers={"Authorization": "Bearer secret"},
+    )
+    stdin = io.StringIO(
+        "\n".join(
+            [
+                json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}),
+                json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}),
+                json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}),
+            ]
+        )
+        + "\n"
+    )
+    stdout = io.StringIO()
+
+    run_http_stdio_proxy(server, stdin=stdin, stdout=stdout, timeout=2)
+
+    responses = [json.loads(line) for line in stdout.getvalue().splitlines()]
+    assert [response["id"] for response in responses] == [1, 2]
+    assert responses[1]["result"]["tools"] == [{"name": "remote_demo"}]
     assert requests[2].headers["Mcp-session-id"] == "session-1"
