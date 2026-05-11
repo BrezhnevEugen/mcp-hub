@@ -10,7 +10,8 @@ MCP Hub keeps a local catalog of MCP servers, groups them into access profiles, 
 - Store server metadata in `registry.yaml`.
 - Store access profiles in `profiles.yaml`.
 - Inspect a server by starting it and calling `tools/list`.
-- Export `mcpServers` JSON for Codex-compatible and Claude Desktop-compatible clients.
+- Export `mcpServers` JSON for Codex, Claude Desktop, and Cursor-compatible clients.
+- Run a local visual interface over the local MCP Hub catalog.
 
 ## Install for development
 
@@ -36,7 +37,7 @@ mcp-hub inspect yt-sub
 mcp-hub profile content yt-sub
 mcp-hub scan --profile content
 mcp-hub export codex --profile content
-mcp-hub catalog generate
+mcp-hub ui
 ```
 
 Import existing Codex MCP servers:
@@ -63,13 +64,11 @@ Import a project-level Cursor MCP file:
 mcp-hub import cursor --path /path/to/project/.cursor/mcp.json --profile project
 ```
 
-Generate a portable catalog for agents:
+Open the local visual interface:
 
 ```bash
-mcp-hub catalog generate
+mcp-hub ui
 ```
-
-The generated `catalog/servers.yaml` and `catalog/profiles.yaml` files are meant to be committed. Agents can read them from GitHub, compare against their own MCP config, and install the missing servers. Secret values are replaced with `${MCP_HUB_SECRET_...}` placeholders.
 
 Temporarily disable a server without deleting it:
 
@@ -115,7 +114,6 @@ profiles:
 
 - Add environment variable management and secret references.
 - Add audit logs for inspect/status/export.
-- Add a local dashboard.
 - Add remote deployment helpers for sensitive infrastructure MCP servers.
 
 ## Periodic capability checks

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MCP Hub</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>MCP Hub</h1>
+          <div id="configPath" class="subtle"></div>
+        </div>
+        <div class="top-actions">
+          <button id="refreshBtn" class="icon-button" title="Refresh">R</button>
+          <button id="scanBtn" class="primary-button">Scan</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Profiles</h2>
+            </div>
+            <div id="profilesList" class="profile-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Import</h2>
+            </div>
+            <label class="field-label" for="importClient">Client</label>
+            <select id="importClient"></select>
+            <label class="field-label" for="importProfile">Profile</label>
+            <input id="importProfile" type="text" value="default">
+            <label class="field-label" for="importPath">Path</label>
+            <input id="importPath" type="text" placeholder="optional">
+            <button id="importBtn" class="wide-button">Import</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Export</h2>
+            </div>
+            <label class="field-label" for="exportClient">Client</label>
+            <select id="exportClient"></select>
+            <button id="exportBtn" class="wide-button">Export</button>
+          </section>
+        </aside>
+
+        <section class="workspace">
+          <div class="workspace-head">
+            <div>
+              <h2 id="activeTitle">Servers</h2>
+              <div id="summaryLine" class="subtle"></div>
+            </div>
+            <input id="searchBox" class="search" type="search" placeholder="Search">
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Transport</th>
+                  <th>Target</th>
+                  <th>Profiles</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="serversTable"></tbody>
+            </table>
+          </div>
+
+          <section class="details">
+            <div class="panel-head">
+              <h2>Details</h2>
+            </div>
+            <div id="detailsBody" class="details-body"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="exportDialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <h2>Export</h2>
+          <button class="icon-button" value="cancel" title="Close">X</button>
+        </div>
+        <pre id="exportOutput"></pre>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast"></div>
+    <script src="/assets/app.js"></script>
+  </body>
+</html>
