@@ -64,6 +64,16 @@
 
           <section class="panel">
             <div class="panel-head">
+              <h2 data-i18n="documentation">Documentation</h2>
+            </div>
+            <div class="doc-intro" data-i18n="documentationIntro">
+              Local guide for registry, profiles, scans, exports, and agent handoff.
+            </div>
+            <button id="docsOpenBtn" class="wide-button" data-i18n="openDocs">Open Docs</button>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
               <h2 data-i18n="export">Export</h2>
             </div>
             <label class="field-label" for="exportClient" data-i18n="client">Client</label>
@@ -183,6 +193,19 @@
           <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
         </div>
         <pre id="exportOutput"></pre>
+      </form>
+    </dialog>
+
+    <dialog id="docsDialog" class="docs-dialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <div>
+            <h2 data-i18n="documentation">Documentation</h2>
+            <div class="subtle" data-i18n="documentationSubtitle">How MCP Hub stores, checks, and exports MCP servers.</div>
+          </div>
+          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
+        </div>
+        <div id="docsBody" class="docs-body"></div>
       </form>
     </dialog>
 

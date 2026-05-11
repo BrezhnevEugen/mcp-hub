@@ -21,6 +21,9 @@ const I18N = {
     deleted: "Deleted {server}",
     description: "Description",
     details: "Details",
+    documentation: "Documentation",
+    documentationIntro: "Local guide for registry, profiles, scans, exports, and agent handoff.",
+    documentationSubtitle: "How MCP Hub stores, checks, and exports MCP servers.",
     disabledStatus: "disabled",
     disable: "Disable",
     documentTitle: "MCP Hub",
@@ -43,6 +46,7 @@ const I18N = {
     noServersScanned: "No servers scanned",
     open: "Open",
     openCard: "Open Card",
+    openDocs: "Open Docs",
     operations: "Operations",
     optional: "optional",
     path: "Path",
@@ -90,6 +94,9 @@ const I18N = {
     deleted: "Удален {server}",
     description: "Описание",
     details: "Детали",
+    documentation: "Документация",
+    documentationIntro: "Короткая справка по реестру, профилям, сканированию, экспорту и передаче агентам.",
+    documentationSubtitle: "Как MCP Hub хранит, проверяет и экспортирует MCP-серверы.",
     disabledStatus: "выключен",
     disable: "Выключить",
     documentTitle: "MCP Hub",
@@ -112,6 +119,7 @@ const I18N = {
     noServersScanned: "Нет просканированных серверов",
     open: "Открыть",
     openCard: "Открыть карточку",
+    openDocs: "Открыть документацию",
     operations: "Операции",
     optional: "необязательно",
     path: "Путь",
@@ -144,6 +152,123 @@ const I18N = {
   },
 };
 
+const DOCS = {
+  en: [
+    {
+      title: "What MCP Hub Stores",
+      body: "MCP Hub is a local registry for MCP servers. It keeps server launch details, tags, profile membership, discovered actions, and the config paths used by this project.",
+      items: [
+        "registry.yaml stores servers, commands, URLs, headers, environment values, tags, descriptions, and scanned actions.",
+        "profiles.yaml stores named access sets that can be exported to agents.",
+        "tool-snapshots.yaml stores action-name snapshots so scans can detect capability drift.",
+      ],
+    },
+    {
+      title: "Daily Workflow",
+      body: "Use the catalog as the source of truth, then sync it outward to the agent clients that need access.",
+      items: [
+        "Import existing MCP servers from Codex, Claude Desktop, or Cursor.",
+        "Open a server card to inspect transport, target, tokens, profiles, tags, and available actions.",
+        "Scan profiles periodically to refresh the action list and detect changes.",
+        "Export a profile when an agent should receive the selected server set.",
+      ],
+    },
+    {
+      title: "Profiles",
+      body: "A profile is a named set of MCP servers. Profiles let you expose only the servers an agent needs for a task.",
+      items: [
+        "The synthetic all profile exports every enabled server.",
+        "Disabled servers stay in the registry but are skipped during export and scans.",
+        "Profiles are intentionally small: they are access groups, not duplicated server definitions.",
+      ],
+    },
+    {
+      title: "Import, Scan, Export",
+      body: "The three operational cards handle the main maintenance loop.",
+      items: [
+        "Import reads client config and merges servers into the local registry.",
+        "Scan starts stdio servers and calls tools/list, then stores readable action names and descriptions.",
+        "Export produces mcpServers JSON for Codex, Claude Desktop, or Cursor-compatible clients.",
+      ],
+    },
+    {
+      title: "Tokens and Local Trust",
+      body: "This UI runs in your local environment and intentionally shows real tokens and headers.",
+      items: [
+        "Tokens in command args, URLs, headers, and env values are visible in the server card.",
+        "Exports preserve those values so agents can actually connect to the MCP servers.",
+        "Treat screenshots and exported JSON as sensitive when tokens are present.",
+      ],
+    },
+    {
+      title: "Versioning",
+      body: "The header badge shows the app version, catalog schema version, and UI state version currently served by the backend.",
+      items: [
+        "App version tracks the MCP Hub package release.",
+        "Catalog schema version tracks registry/profile file shape.",
+        "UI state version tracks the /api/state contract consumed by the frontend.",
+      ],
+    },
+  ],
+  ru: [
+    {
+      title: "Что хранит MCP Hub",
+      body: "MCP Hub - локальный реестр MCP-серверов. Он хранит параметры запуска, теги, привязку к профилям, найденные навыки и пути конфигурации текущего проекта.",
+      items: [
+        "registry.yaml хранит серверы, команды, URL, заголовки, переменные окружения, теги, описания и найденные навыки.",
+        "profiles.yaml хранит именованные наборы доступа, которые можно экспортировать агентам.",
+        "tool-snapshots.yaml хранит снимки названий навыков, чтобы сканирование видело изменения возможностей.",
+      ],
+    },
+    {
+      title: "Рабочий цикл",
+      body: "Каталог служит источником правды, а затем нужные наборы серверов передаются наружу в агентские клиенты.",
+      items: [
+        "Импортируй существующие MCP-серверы из Codex, Claude Desktop или Cursor.",
+        "Открывай карточку сервера, чтобы увидеть transport, target, токены, профили, теги и доступные навыки.",
+        "Периодически сканируй профили, чтобы обновлять список навыков и видеть изменения.",
+        "Экспортируй профиль, когда агенту нужно выдать выбранный набор серверов.",
+      ],
+    },
+    {
+      title: "Профили",
+      body: "Профиль - это именованный набор MCP-серверов. Он позволяет выдать агенту только те серверы, которые нужны для задачи.",
+      items: [
+        "Синтетический профиль все экспортирует каждый включенный сервер.",
+        "Выключенные серверы остаются в реестре, но пропускаются при экспорте и сканировании.",
+        "Профили специально небольшие: это группы доступа, а не копии серверных настроек.",
+      ],
+    },
+    {
+      title: "Импорт, сканирование, экспорт",
+      body: "Три операционные карточки закрывают основной цикл обслуживания.",
+      items: [
+        "Импорт читает конфиги клиентов и объединяет серверы с локальным реестром.",
+        "Сканирование запускает stdio-серверы, вызывает tools/list и сохраняет читаемые названия и описания навыков.",
+        "Экспорт формирует mcpServers JSON для Codex, Claude Desktop или Cursor-совместимых клиентов.",
+      ],
+    },
+    {
+      title: "Токены и локальное доверие",
+      body: "Этот UI работает в твоем локальном окружении и намеренно показывает реальные токены и заголовки.",
+      items: [
+        "Токены в command args, URL, headers и env видны в карточке сервера.",
+        "Экспорт сохраняет эти значения, чтобы агенты действительно могли подключиться к MCP-серверам.",
+        "Скриншоты и экспортированный JSON стоит считать чувствительными, если в них есть токены.",
+      ],
+    },
+    {
+      title: "Версионность",
+      body: "Бейдж в шапке показывает версию приложения, версию схемы каталога и версию состояния UI, которые отдает backend.",
+      items: [
+        "Версия приложения относится к релизу пакета MCP Hub.",
+        "Версия схемы каталога относится к формату registry/profiles файлов.",
+        "Версия состояния UI относится к контракту /api/state, который читает frontend.",
+      ],
+    },
+  ],
+};
+
 activeLocale = getInitialLocale();
 
 const el = {
@@ -164,6 +289,9 @@ const el = {
   sideAddOpenBtn: document.querySelector("#sideAddOpenBtn"),
   sideImportOpenBtn: document.querySelector("#sideImportOpenBtn"),
   sideScanOpenBtn: document.querySelector("#sideScanOpenBtn"),
+  docsOpenBtn: document.querySelector("#docsOpenBtn"),
+  docsDialog: document.querySelector("#docsDialog"),
+  docsBody: document.querySelector("#docsBody"),
   addDialog: document.querySelector("#addDialog"),
   addName: document.querySelector("#addName"),
   addTransport: document.querySelector("#addTransport"),
@@ -281,6 +409,7 @@ function render() {
   renderScanProfileSelect();
   renderServers();
   renderDetails();
+  renderDocs();
 }
 
 function renderLocaleSelect() {
@@ -490,6 +619,19 @@ function renderToolList(tools) {
       `).join("")}
     </div>
   `;
+}
+
+function renderDocs() {
+  const sections = DOCS[activeLocale] || DOCS.en;
+  el.docsBody.innerHTML = sections.map((section) => `
+    <article class="docs-section">
+      <h3>${escapeHtml(section.title)}</h3>
+      <p>${escapeHtml(section.body)}</p>
+      <ul>
+        ${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+      </ul>
+    </article>
+  `).join("");
 }
 
 function openUnitCard(name = selectedServer) {
@@ -727,9 +869,15 @@ function openScanDialog() {
   el.scanProfileSelect.focus();
 }
 
+function openDocsDialog() {
+  renderDocs();
+  el.docsDialog.showModal();
+}
+
 el.sideAddOpenBtn.addEventListener("click", openAddDialog);
 el.sideImportOpenBtn.addEventListener("click", openImportDialog);
 el.sideScanOpenBtn.addEventListener("click", openScanDialog);
+el.docsOpenBtn.addEventListener("click", openDocsDialog);
 el.addTransport.addEventListener("change", renderAddForm);
 el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast(error.message)));
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));

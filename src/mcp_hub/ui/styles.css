@@ -406,7 +406,8 @@ tr.selected td {
 }
 
 .tool-description,
-.empty-actions {
+.empty-actions,
+.doc-intro {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
@@ -484,6 +485,52 @@ dialog::backdrop {
 .unit-dialog {
   width: min(1040px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
+}
+
+.docs-dialog {
+  width: min(920px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+}
+
+.docs-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: calc(100vh - 132px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.docs-section {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 12px;
+  min-width: 0;
+}
+
+.docs-section h3 {
+  margin: 0 0 7px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.docs-section p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 8px;
+}
+
+.docs-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.docs-section li {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 4px 0;
 }
 
 .unit-card-body {
@@ -602,6 +649,10 @@ pre {
   }
 
   .details-body {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-body {
     grid-template-columns: 1fr;
   }
 

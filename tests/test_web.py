@@ -1,3 +1,4 @@
+from importlib import resources
 from pathlib import Path
 
 from mcp_hub.config import HubConfig
@@ -15,6 +16,17 @@ def test_build_state_adds_profile_membership(tmp_path: Path) -> None:
     state = build_state(hub)
 
     assert state["servers"][0]["profiles"] == ["default"]
+
+
+def test_ui_assets_include_documentation_section() -> None:
+    ui_files = resources.files("mcp_hub").joinpath("ui")
+    html = ui_files.joinpath("index.html").read_text(encoding="utf-8")
+    app_js = ui_files.joinpath("app.js").read_text(encoding="utf-8")
+
+    assert 'id="docsOpenBtn"' in html
+    assert 'id="docsDialog"' in html
+    assert "const DOCS = {" in app_js
+    assert "openDocsDialog" in app_js
 
 
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:
