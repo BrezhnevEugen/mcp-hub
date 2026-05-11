@@ -31,10 +31,24 @@ If you do not want test extras yet:
 mcp-hub init
 mcp-hub add yt-sub --command "python3 -m yt_sub.server" --tag media --tag transcript
 mcp-hub list
+mcp-hub show yt-sub
 mcp-hub inspect yt-sub
-mcp-hub scan --profile content
 mcp-hub profile content yt-sub
+mcp-hub scan --profile content
 mcp-hub export codex --profile content
+```
+
+Import existing Codex MCP servers:
+
+```bash
+mcp-hub import codex --profile default
+```
+
+Temporarily disable a server without deleting it:
+
+```bash
+mcp-hub disable yt-sub
+mcp-hub enable yt-sub
 ```
 
 Config defaults to `~/.mcp-hub`. For isolated testing, use:
@@ -72,7 +86,6 @@ profiles:
 
 ## Roadmap
 
-- Add `remove`, `disable`, and `enable` commands.
 - Add environment variable management and secret references.
 - Add audit logs for inspect/status/export.
 - Add a local dashboard.

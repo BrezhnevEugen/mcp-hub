@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 
@@ -13,6 +13,9 @@ class ServerConfig:
     tags: list[str] = field(default_factory=list)
     description: str = ""
     enabled: bool = True
+
+    def with_enabled(self, enabled: bool) -> "ServerConfig":
+        return replace(self, enabled=enabled)
 
     @classmethod
     def from_mapping(cls, name: str, data: dict[str, Any]) -> "ServerConfig":

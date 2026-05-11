@@ -28,3 +28,10 @@ def test_save_and_load_profiles(tmp_path: Path) -> None:
     hub.save_profiles({"content": ["yt-sub"]})
 
     assert hub.load_profiles() == {"content": ["yt-sub"]}
+
+
+def test_server_enabled_roundtrip(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers({"demo": ServerConfig(name="demo", command=["demo"], enabled=False)})
+
+    assert hub.load_servers()["demo"].enabled is False

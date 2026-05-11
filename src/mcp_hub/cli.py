@@ -7,6 +7,7 @@ import shlex
 import sys
 
 from .config import HubConfig
+from .importers import DEFAULT_CODEX_CONFIG, import_codex_servers
 from .mcp_client import MCPError, list_tools
 from .models import ServerConfig
 from .scanner import compare_tools
@@ -27,6 +28,19 @@ def main(argv: list[str] | None = None) -> int:
 
     subparsers.add_parser("list", help="List registered servers.")
 
+    show_parser = subparsers.add_parser("show", help="Show one registered server.")
+    show_parser.add_argument("name")
+    show_parser.add_argument("--json", action="store_true", help="Print JSON result.")
+
+    remove_parser = subparsers.add_parser("remove", help="Remove a registered server.")
+    remove_parser.add_argument("name")
+
+    enable_parser = subparsers.add_parser("enable", help="Enable a registered server.")
+    enable_parser.add_argument("name")
+
+    disable_parser = subparsers.add_parser("disable", help="Disable a registered server.")
+    disable_parser.add_argument("name")
+
     inspect_parser = subparsers.add_parser("inspect", help="Run tools/list against a server.")
     inspect_parser.add_argument("name")
     inspect_parser.add_argument("--json", action="store_true", help="Print raw JSON.")
@@ -45,6 +59,11 @@ def main(argv: list[str] | None = None) -> int:
     export_parser = subparsers.add_parser("export", help="Export MCP config for a client.")
     export_parser.add_argument("client", choices=["codex", "claude-desktop"])
     export_parser.add_argument("--profile", default="default")
+
+    import_parser = subparsers.add_parser("import", help="Import MCP servers from another client.")
+    import_parser.add_argument("client", choices=["codex"])
+    import_parser.add_argument("--path", help=f"Client config path. Defaults to {DEFAULT_CODEX_CONFIG}.")
+    import_parser.add_argument("--profile", help="Add imported servers to a profile.")
 
     args = parser.parse_args(argv)
     hub = HubConfig() if args.home is None else HubConfig(config_dir=Path(args.home).expanduser())
@@ -86,8 +105,49 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
             print(f"{server.name}\t{state}\t{server.transport}\t{shlex.join(server.command)}{tags}")
         return 0
 
+    if args.subcommand == "show":
+        server = _get_server(hub, args.name)
+        data = server.to_mapping()
+        if args.json:
+            print(json.dumps({server.name: data}, indent=2, ensure_ascii=False))
+        else:
+            print(f"name: {server.name}")
+            print(f"enabled: {str(server.enabled).lower()}")
+            print(f"transport: {server.transport}")
+            print(f"command: {shlex.join(server.command)}")
+            if server.tags:
+                print(f"tags: {', '.join(server.tags)}")
+            if server.description:
+                print(f"description: {server.description}")
+            if server.env:
+                print(f"env: {', '.join(sorted(server.env))}")
+        return 0
+
+    if args.subcommand == "remove":
+        servers = hub.load_servers()
+        if args.name not in servers:
+            raise ValueError(f"unknown server: {args.name}")
+        del servers[args.name]
+        hub.save_servers(servers)
+        _remove_server_from_profiles(hub, args.name)
+        print(f"removed {args.name}")
+        return 0
+
+    if args.subcommand in {"enable", "disable"}:
+        enabled = args.subcommand == "enable"
+        servers = hub.load_servers()
+        if args.name not in servers:
+            raise ValueError(f"unknown server: {args.name}")
+        servers[args.name] = servers[args.name].with_enabled(enabled)
+        hub.save_servers(servers)
+        action = "enabled" if enabled else "disabled"
+        print(f"{action} {args.name}")
+        return 0
+
     if args.subcommand == "inspect":
         server = _get_server(hub, args.name)
+        if not server.enabled:
+            raise ValueError(f"server is disabled: {server.name}")
         tools = list_tools(server)
         if args.json:
             print(json.dumps([tool.__dict__ for tool in tools], indent=2, ensure_ascii=False))
@@ -133,6 +193,17 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
 
+    if args.subcommand == "import":
+        imported = _import_servers(args.client, Path(args.path).expanduser() if args.path else None)
+        servers = hub.load_servers()
+        servers.update(imported)
+        hub.save_servers(servers)
+        if args.profile:
+            _add_servers_to_profile(hub, args.profile, sorted(imported))
+        names = ", ".join(sorted(imported)) if imported else "(none)"
+        print(f"imported {len(imported)} server(s): {names}")
+        return 0
+
     raise ValueError(f"unknown command: {args.subcommand}")
 
 
@@ -147,11 +218,11 @@ def _get_server(hub: HubConfig, name: str) -> ServerConfig:
 def _servers_for_status(hub: HubConfig, profile: str | None) -> list[ServerConfig]:
     servers = hub.load_servers()
     if profile is None:
-        return list(servers.values())
+        return [server for server in servers.values() if server.enabled]
     profiles = hub.load_profiles()
     if profile not in profiles:
         raise ValueError(f"unknown profile: {profile}")
-    return [servers[name] for name in profiles[profile] if name in servers]
+    return [servers[name] for name in profiles[profile] if name in servers and servers[name].enabled]
 
 
 def _export_config(hub: HubConfig, profile: str) -> dict[str, object]:
@@ -171,6 +242,31 @@ def _export_config(hub: HubConfig, profile: str) -> dict[str, object]:
             for name, server in selected.items()
         }
     }
+
+
+def _remove_server_from_profiles(hub: HubConfig, server_name: str) -> None:
+    profiles = hub.load_profiles()
+    changed = False
+    for name, server_names in profiles.items():
+        filtered = [item for item in server_names if item != server_name]
+        if filtered != server_names:
+            profiles[name] = filtered
+            changed = True
+    if changed:
+        hub.save_profiles(profiles)
+
+
+def _add_servers_to_profile(hub: HubConfig, profile_name: str, server_names: list[str]) -> None:
+    profiles = hub.load_profiles()
+    current = profiles.get(profile_name, [])
+    profiles[profile_name] = list(dict.fromkeys([*current, *server_names]))
+    hub.save_profiles(profiles)
+
+
+def _import_servers(client: str, path: Path | None) -> dict[str, ServerConfig]:
+    if client == "codex":
+        return import_codex_servers(path or DEFAULT_CODEX_CONFIG)
+    raise ValueError(f"unsupported import client: {client}")
 
 
 def _scan_tools(hub: HubConfig, profile: str | None) -> list[dict[str, object]]:
