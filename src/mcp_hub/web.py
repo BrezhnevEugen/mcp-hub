@@ -335,10 +335,12 @@ def _server_payload(server: ServerConfig, profiles: list[str]) -> dict[str, Any]
         "transport": server.transport,
         "target": _format_server_target(server),
         "command": _format_command(server.command) if server.command else "",
-        "url": _redact_value(server.url) if server.url else "",
+        "url": server.url if server.url else "",
         "tags": server.tags,
         "profiles": sorted(profiles),
         "description": server.description,
+        "env": dict(sorted(server.env.items())),
+        "headers": dict(sorted(server.headers.items())),
         "envKeys": sorted(server.env),
         "headerKeys": sorted(server.headers),
         "toolCount": len(server.tools),
@@ -367,20 +369,12 @@ def _export_server_config(server: ServerConfig) -> dict[str, object]:
 
 def _format_server_target(server: ServerConfig) -> str:
     if server.transport == "http":
-        return _redact_value(server.url)
+        return server.url
     return _format_command(server.command)
 
 
 def _format_command(command: list[str]) -> str:
-    return " ".join(_shell_quote(_redact_value(arg)) for arg in command)
-
-
-def _redact_value(value: str) -> str:
-    lower = value.lower()
-    markers = ("authorization: bearer ", "bearer ", "api_key=", "apikey=", "api-key=", "x-goog-api-key", "token=", "secret=")
-    if any(marker in lower for marker in markers):
-        return value[:8] + "...[redacted]" if len(value) > 12 else "[redacted]"
-    return value
+    return " ".join(_shell_quote(arg) for arg in command)
 
 
 def _shell_quote(value: str) -> str:

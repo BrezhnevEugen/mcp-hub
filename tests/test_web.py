@@ -47,6 +47,40 @@ def test_build_state_includes_server_tools(tmp_path: Path) -> None:
     ]
 
 
+def test_build_state_keeps_access_tokens_visible(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers(
+        {
+            "demo": ServerConfig(
+                name="demo",
+                command=[
+                    "npx",
+                    "mcp-remote",
+                    "https://example.com/mcp",
+                    "--header",
+                    "Authorization: Bearer secret-token",
+                ],
+                env={"API_TOKEN": "env-secret"},
+            ),
+            "remote": ServerConfig(
+                name="remote",
+                transport="http",
+                url="https://example.com/mcp?token=query-secret",
+                headers={"Authorization": "Bearer header-secret"},
+            ),
+        }
+    )
+    hub.save_profiles({"default": ["demo", "remote"]})
+
+    state = build_state(hub)
+    servers = {server["name"]: server for server in state["servers"]}
+
+    assert "secret-token" in servers["demo"]["target"]
+    assert servers["demo"]["env"] == {"API_TOKEN": "env-secret"}
+    assert "query-secret" in servers["remote"]["url"]
+    assert servers["remote"]["headers"] == {"Authorization": "Bearer header-secret"}
+
+
 def test_export_profile_supports_synthetic_all(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.save_servers(
@@ -60,6 +94,32 @@ def test_export_profile_supports_synthetic_all(tmp_path: Path) -> None:
     exported = export_profile(hub, "all", "codex")
 
     assert sorted(exported["mcpServers"]) == ["enabled"]
+
+
+def test_export_profile_keeps_access_tokens_for_agents(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers(
+        {
+            "stdio": ServerConfig(
+                name="stdio",
+                command=["server", "--token=stdio-secret"],
+                env={"API_TOKEN": "env-secret"},
+            ),
+            "remote": ServerConfig(
+                name="remote",
+                transport="http",
+                url="https://example.com/mcp",
+                headers={"Authorization": "Bearer remote-secret"},
+            ),
+        }
+    )
+    hub.save_profiles({"default": ["stdio", "remote"]})
+
+    exported = export_profile(hub, "default", "codex")
+
+    assert exported["mcpServers"]["stdio"]["args"] == ["--token=stdio-secret"]
+    assert exported["mcpServers"]["stdio"]["env"] == {"API_TOKEN": "env-secret"}
+    assert exported["mcpServers"]["remote"]["headers"] == {"Authorization": "Bearer remote-secret"}
 
 
 def test_create_server_adds_stdio_server_to_profile(tmp_path: Path) -> None:

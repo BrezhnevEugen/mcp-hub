@@ -224,8 +224,8 @@ function renderDetails() {
     ["Profiles", server.profiles.join(", ") || "-"],
     ["Tags", server.tags.join(", ") || "-"],
     ["Actions", String(server.toolCount || 0)],
-    ["Env", server.envKeys.join(", ") || "-"],
-    ["Headers", server.headerKeys.join(", ") || "-"],
+    ["Env", formatMap(server.env, server.envKeys)],
+    ["Headers", formatMap(server.headers, server.headerKeys)],
     ["Description", server.description || "-"],
   ];
   const toolList = renderToolList(server.tools || []);
@@ -278,8 +278,8 @@ function renderUnitCard(server) {
     ["Target", server.target || "-"],
     ["Profiles", server.profiles.join(", ") || "-"],
     ["Tags", server.tags.join(", ") || "-"],
-    ["Env keys", server.envKeys.join(", ") || "-"],
-    ["Header keys", server.headerKeys.join(", ") || "-"],
+    ["Env", formatMap(server.env, server.envKeys)],
+    ["Headers", formatMap(server.headers, server.headerKeys)],
     ["Description", server.description || "-"],
   ];
   if (server.command && server.command !== server.target) {
@@ -322,6 +322,16 @@ function renderUnitTools(tools) {
       `).join("")}
     </div>
   `;
+}
+
+function formatMap(values, fallbackKeys = []) {
+  if (values && Object.keys(values).length) {
+    return Object.entries(values)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${key}=${value}`)
+      .join("\n");
+  }
+  return fallbackKeys && fallbackKeys.length ? fallbackKeys.join(", ") : "-";
 }
 
 async function importServers() {
