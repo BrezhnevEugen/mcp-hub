@@ -50,6 +50,18 @@ Import existing Claude Desktop MCP servers:
 mcp-hub import claude-desktop --profile default
 ```
 
+Import existing Cursor MCP servers:
+
+```bash
+mcp-hub import cursor --profile default
+```
+
+Import a project-level Cursor MCP file:
+
+```bash
+mcp-hub import cursor --path /path/to/project/.cursor/mcp.json --profile project
+```
+
 Temporarily disable a server without deleting it:
 
 ```bash

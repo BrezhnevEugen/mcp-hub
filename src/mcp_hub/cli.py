@@ -10,8 +10,10 @@ from .config import HubConfig
 from .importers import (
     DEFAULT_CLAUDE_DESKTOP_CONFIG,
     DEFAULT_CODEX_CONFIG,
+    DEFAULT_CURSOR_CONFIG,
     import_claude_desktop_servers,
     import_codex_servers,
+    import_cursor_servers,
 )
 from .mcp_client import MCPError, list_tools
 from .models import ServerConfig
@@ -62,16 +64,17 @@ def main(argv: list[str] | None = None) -> int:
     profile_parser.add_argument("servers", nargs="*")
 
     export_parser = subparsers.add_parser("export", help="Export MCP config for a client.")
-    export_parser.add_argument("client", choices=["codex", "claude-desktop"])
+    export_parser.add_argument("client", choices=["codex", "claude-desktop", "cursor"])
     export_parser.add_argument("--profile", default="default")
 
     import_parser = subparsers.add_parser("import", help="Import MCP servers from another client.")
-    import_parser.add_argument("client", choices=["codex", "claude-desktop"])
+    import_parser.add_argument("client", choices=["codex", "claude-desktop", "cursor"])
     import_parser.add_argument(
         "--path",
         help=(
             "Client config path. Defaults to "
-            f"{DEFAULT_CODEX_CONFIG} for Codex or {DEFAULT_CLAUDE_DESKTOP_CONFIG} for Claude Desktop."
+            f"{DEFAULT_CODEX_CONFIG} for Codex, {DEFAULT_CLAUDE_DESKTOP_CONFIG} for Claude Desktop, "
+            f"or {DEFAULT_CURSOR_CONFIG} for Cursor."
         ),
     )
     import_parser.add_argument("--profile", help="Add imported servers to a profile.")
@@ -113,7 +116,7 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         for server in servers.values():
             tags = f" [{', '.join(server.tags)}]" if server.tags else ""
             state = "enabled" if server.enabled else "disabled"
-            print(f"{server.name}\t{state}\t{server.transport}\t{_format_command(server.command)}{tags}")
+            print(f"{server.name}\t{state}\t{server.transport}\t{_format_server_target(server)}{tags}")
         return 0
 
     if args.subcommand == "show":
@@ -125,7 +128,12 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
             print(f"name: {server.name}")
             print(f"enabled: {str(server.enabled).lower()}")
             print(f"transport: {server.transport}")
-            print(f"command: {_format_command(server.command)}")
+            if server.command:
+                print(f"command: {_format_command(server.command)}")
+            if server.url:
+                print(f"url: {_redact_arg(server.url)}")
+            if server.headers:
+                print(f"headers: {', '.join(sorted(server.headers))}")
             if server.tags:
                 print(f"tags: {', '.join(server.tags)}")
             if server.description:
@@ -246,9 +254,7 @@ def _export_config(hub: HubConfig, profile: str) -> dict[str, object]:
     return {
         "mcpServers": {
             name: {
-                "command": server.command[0],
-                "args": server.command[1:],
-                **({"env": server.env} if server.env else {}),
+                **_export_server_config(server),
             }
             for name, server in selected.items()
         }
@@ -279,7 +285,30 @@ def _import_servers(client: str, path: Path | None) -> dict[str, ServerConfig]:
         return import_codex_servers(path or DEFAULT_CODEX_CONFIG)
     if client == "claude-desktop":
         return import_claude_desktop_servers(path or DEFAULT_CLAUDE_DESKTOP_CONFIG)
+    if client == "cursor":
+        if path is not None:
+            return import_cursor_servers(path, settings_path=Path("__mcp_hub_missing_cursor_settings__"))
+        return import_cursor_servers(path or DEFAULT_CURSOR_CONFIG)
     raise ValueError(f"unsupported import client: {client}")
+
+
+def _export_server_config(server: ServerConfig) -> dict[str, object]:
+    if server.transport == "http":
+        return {
+            "url": server.url,
+            **({"headers": server.headers} if server.headers else {}),
+        }
+    return {
+        "command": server.command[0],
+        "args": server.command[1:],
+        **({"env": server.env} if server.env else {}),
+    }
+
+
+def _format_server_target(server: ServerConfig) -> str:
+    if server.transport == "http":
+        return _redact_arg(server.url)
+    return _format_command(server.command)
 
 
 def _format_command(command: list[str]) -> str:
@@ -288,7 +317,16 @@ def _format_command(command: list[str]) -> str:
 
 def _redact_arg(value: str) -> str:
     lower = value.lower()
-    sensitive_markers = ("authorization: bearer ", "bearer ", "api_key=", "apikey=", "token=", "secret=")
+    sensitive_markers = (
+        "authorization: bearer ",
+        "bearer ",
+        "api_key=",
+        "apikey=",
+        "api-key=",
+        "x-goog-api-key",
+        "token=",
+        "secret=",
+    )
     if any(marker in lower for marker in sensitive_markers):
         return _redact_sensitive_value(value)
     return value

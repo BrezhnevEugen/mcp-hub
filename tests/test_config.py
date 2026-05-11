@@ -35,3 +35,22 @@ def test_server_enabled_roundtrip(tmp_path: Path) -> None:
     hub.save_servers({"demo": ServerConfig(name="demo", command=["demo"], enabled=False)})
 
     assert hub.load_servers()["demo"].enabled is False
+
+
+def test_remote_server_roundtrip(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers(
+        {
+            "remote": ServerConfig(
+                name="remote",
+                transport="http",
+                url="https://example.com/mcp",
+                headers={"Authorization": "Bearer secret"},
+            )
+        }
+    )
+
+    server = hub.load_servers()["remote"]
+    assert server.transport == "http"
+    assert server.url == "https://example.com/mcp"
+    assert server.headers == {"Authorization": "Bearer secret"}

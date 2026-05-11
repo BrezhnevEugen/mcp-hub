@@ -9,6 +9,8 @@ from .models import ServerConfig
 
 DEFAULT_CODEX_CONFIG = Path("~/.codex/config.toml").expanduser()
 DEFAULT_CLAUDE_DESKTOP_CONFIG = Path("~/Library/Application Support/Claude/claude_desktop_config.json").expanduser()
+DEFAULT_CURSOR_CONFIG = Path("~/.cursor/mcp.json").expanduser()
+DEFAULT_CURSOR_SETTINGS = Path("~/Library/Application Support/Cursor/User/settings.json").expanduser()
 
 
 def import_codex_servers(config_path: Path = DEFAULT_CODEX_CONFIG) -> dict[str, ServerConfig]:
@@ -81,3 +83,68 @@ def import_claude_desktop_servers(
         )
 
     return servers
+
+
+def import_cursor_servers(
+    config_path: Path = DEFAULT_CURSOR_CONFIG,
+    settings_path: Path = DEFAULT_CURSOR_SETTINGS,
+) -> dict[str, ServerConfig]:
+    servers: dict[str, ServerConfig] = {}
+    if config_path.exists():
+        servers.update(_import_json_mcp_servers(config_path, tag="cursor-import", source="Cursor MCP config"))
+    if settings_path.exists():
+        imported = _import_json_mcp_servers(settings_path, tag="cursor-settings-import", source="Cursor settings")
+        servers.update(imported)
+    if not servers and not config_path.exists() and not settings_path.exists():
+        raise FileNotFoundError(f"{config_path} or {settings_path}")
+    return servers
+
+
+def _import_json_mcp_servers(config_path: Path, tag: str, source: str) -> dict[str, ServerConfig]:
+    with config_path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+
+    raw_servers = data.get("mcpServers", {})
+    if not isinstance(raw_servers, dict):
+        raise ValueError(f"{source} mcpServers must be a mapping")
+
+    servers: dict[str, ServerConfig] = {}
+    for name, raw in raw_servers.items():
+        if not isinstance(raw, dict):
+            raise ValueError(f"{source} MCP server {name!r} must be a mapping")
+        servers[name] = _server_from_json_mcp(name=name, raw=raw, tag=tag, source=source)
+    return servers
+
+
+def _server_from_json_mcp(name: str, raw: dict[str, object], tag: str, source: str) -> ServerConfig:
+    command = raw.get("command")
+    url = raw.get("url")
+    if isinstance(command, str):
+        args = raw.get("args", [])
+        if not isinstance(args, list) or not all(isinstance(item, str) for item in args):
+            raise ValueError(f"{source} MCP server {name!r} args must be a list of strings")
+        env = raw.get("env", {})
+        if not isinstance(env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in env.items()):
+            raise ValueError(f"{source} MCP server {name!r} env must be a string map")
+        return ServerConfig(
+            name=name,
+            command=[command, *args],
+            env=env,
+            tags=[tag],
+            description=f"Imported from {source}.",
+        )
+
+    if isinstance(url, str):
+        headers = raw.get("headers", {})
+        if not isinstance(headers, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in headers.items()):
+            raise ValueError(f"{source} MCP server {name!r} headers must be a string map")
+        return ServerConfig(
+            name=name,
+            transport="http",
+            url=url,
+            headers=headers,
+            tags=[tag],
+            description=f"Imported from {source}.",
+        )
+
+    raise ValueError(f"{source} MCP server {name!r} must define command or url")
