@@ -78,7 +78,6 @@ def main(argv: list[str] | None = None) -> int:
             f"or {DEFAULT_CURSOR_CONFIG} for Cursor."
         ),
     )
-    import_parser.add_argument("--profile", help="Add imported servers to a profile.")
 
     ui_parser = subparsers.add_parser("ui", help="Start the local MCP Hub visual interface.")
     ui_parser.add_argument("--host", default="127.0.0.1")
@@ -222,10 +221,8 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         servers = hub.load_servers()
         servers.update(imported)
         hub.save_servers(servers)
-        if args.profile:
-            _add_servers_to_profile(hub, args.profile, sorted(imported))
         names = ", ".join(sorted(imported)) if imported else "(none)"
-        print(f"imported {len(imported)} server(s): {names}")
+        print(f"synced {len(imported)} server(s): {names}")
         return 0
 
     if args.subcommand == "ui":

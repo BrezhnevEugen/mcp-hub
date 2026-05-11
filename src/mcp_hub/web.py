@@ -135,17 +135,11 @@ def build_state(hub: HubConfig) -> dict[str, Any]:
 
 def import_client(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
     client = str(payload.get("client", ""))
-    profile = payload.get("profile")
     path = payload.get("path")
     imported = _import_servers(client, Path(str(path)).expanduser() if path else None)
     servers = hub.load_servers()
     servers.update(imported)
     hub.save_servers(servers)
-    if profile:
-        profiles = hub.load_profiles()
-        current = profiles.get(str(profile), [])
-        profiles[str(profile)] = list(dict.fromkeys([*current, *sorted(imported)]))
-        hub.save_profiles(profiles)
     return {"imported": sorted(imported)}
 
 

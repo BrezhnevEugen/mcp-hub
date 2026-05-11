@@ -40,28 +40,28 @@ mcp-hub export codex --profile content
 mcp-hub ui
 ```
 
-Import existing Codex MCP servers:
+Sync existing Codex MCP servers into the local catalog:
 
 ```bash
-mcp-hub import codex --profile default
+mcp-hub import codex
 ```
 
-Import existing Claude Desktop MCP servers:
+Sync existing Claude Desktop MCP servers into the local catalog:
 
 ```bash
-mcp-hub import claude-desktop --profile default
+mcp-hub import claude-desktop
 ```
 
-Import existing Cursor MCP servers:
+Sync existing Cursor MCP servers into the local catalog:
 
 ```bash
-mcp-hub import cursor --profile default
+mcp-hub import cursor
 ```
 
-Import a project-level Cursor MCP file:
+Sync a project-level Cursor MCP file:
 
 ```bash
-mcp-hub import cursor --path /path/to/project/.cursor/mcp.json --profile project
+mcp-hub import cursor --path /path/to/project/.cursor/mcp.json
 ```
 
 Open the local visual interface:

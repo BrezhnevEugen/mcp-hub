@@ -26,7 +26,6 @@ const el = {
   addTags: document.querySelector("#addTags"),
   addBtn: document.querySelector("#addBtn"),
   importClient: document.querySelector("#importClient"),
-  importProfile: document.querySelector("#importProfile"),
   importPath: document.querySelector("#importPath"),
   importBtn: document.querySelector("#importBtn"),
   exportClient: document.querySelector("#exportClient"),
@@ -203,7 +202,6 @@ function renderPills(values) {
 async function importServers() {
   const payload = {
     client: el.importClient.value,
-    profile: el.importProfile.value.trim(),
   };
   const path = el.importPath.value.trim();
   if (path) payload.path = path;
@@ -211,7 +209,7 @@ async function importServers() {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  showToast(`Imported ${result.imported.length} server(s)`);
+  showToast(`Synced ${result.imported.length} server(s)`);
   await loadState();
 }
 
