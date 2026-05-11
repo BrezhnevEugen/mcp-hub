@@ -275,26 +275,28 @@ function renderUnitCard(server) {
   el.unitTitle.textContent = server.name;
   el.unitSubtitle.textContent = `${server.transport} · ${server.toolCount || 0} action(s) · ${server.enabled ? "enabled" : "disabled"}`;
   const fields = [
-    ["Name", server.name],
-    ["Enabled", server.enabled ? "true" : "false"],
-    ["Transport", server.transport],
     ["Target", server.target || "-"],
-    ["Command", server.command || "-"],
-    ["URL", server.url || "-"],
     ["Profiles", server.profiles.join(", ") || "-"],
     ["Tags", server.tags.join(", ") || "-"],
     ["Env keys", server.envKeys.join(", ") || "-"],
     ["Header keys", server.headerKeys.join(", ") || "-"],
     ["Description", server.description || "-"],
   ];
+  if (server.command && server.command !== server.target) {
+    fields.splice(1, 0, ["Command", server.command]);
+  }
+  if (server.url && server.url !== server.target) {
+    fields.splice(1, 0, ["URL", server.url]);
+  }
+  const wideLabels = new Set(["Target", "Command", "URL", "Description"]);
   el.unitCardBody.innerHTML = `
-    <section class="unit-section">
+    <section class="unit-section compact-section">
       <h3>Server</h3>
-      <div class="unit-field-grid">
+      <div class="unit-info-grid">
         ${fields.map(([label, value]) => `
-          <div class="unit-field">
-            <div class="detail-label">${escapeHtml(label)}</div>
-            <div class="detail-value mono">${escapeHtml(value)}</div>
+          <div class="unit-info-row ${wideLabels.has(label) ? "wide" : ""}">
+            <div class="unit-info-label">${escapeHtml(label)}</div>
+            <div class="unit-info-value mono">${escapeHtml(value)}</div>
           </div>
         `).join("")}
       </div>

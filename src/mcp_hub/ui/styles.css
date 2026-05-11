@@ -468,20 +468,43 @@ dialog::backdrop {
   padding-top: 12px;
 }
 
+.compact-section {
+  padding-top: 8px;
+}
+
 .unit-section h3 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 13px;
   line-height: 1.2;
 }
 
-.unit-field-grid {
+.unit-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 18px;
+  gap: 6px 18px;
 }
 
-.unit-field {
+.unit-info-row {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
   min-width: 0;
+}
+
+.unit-info-row.wide {
+  grid-column: 1 / -1;
+}
+
+.unit-info-label {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.unit-info-value {
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .unit-tool-list {
@@ -541,8 +564,12 @@ pre {
     grid-template-columns: 1fr;
   }
 
-  .unit-field-grid {
+  .unit-info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .unit-info-row {
+    grid-template-columns: 92px minmax(0, 1fr);
   }
 
 }
