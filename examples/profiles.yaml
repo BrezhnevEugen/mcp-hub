@@ -1,0 +1,11 @@
+profiles:
+  default:
+    servers:
+      - yt-sub
+  infra:
+    servers:
+      - vpn-control
+  admin:
+    servers:
+      - yt-sub
+      - vpn-control

@@ -1,0 +1,30 @@
+from pathlib import Path
+
+from mcp_hub.config import HubConfig
+from mcp_hub.models import ServerConfig
+
+
+def test_save_and_load_servers(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers(
+        {
+            "demo": ServerConfig(
+                name="demo",
+                command=["python3", "-m", "demo"],
+                tags=["test"],
+                description="Demo server",
+            )
+        }
+    )
+
+    servers = hub.load_servers()
+
+    assert servers["demo"].command == ["python3", "-m", "demo"]
+    assert servers["demo"].tags == ["test"]
+
+
+def test_save_and_load_profiles(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_profiles({"content": ["yt-sub"]})
+
+    assert hub.load_profiles() == {"content": ["yt-sub"]}

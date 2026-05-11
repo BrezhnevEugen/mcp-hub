@@ -1,0 +1,21 @@
+servers:
+  yt-sub:
+    transport: stdio
+    command:
+      - python3
+      - -m
+      - yt_sub.server
+    enabled: true
+    tags:
+      - media
+      - transcript
+    description: YouTube metadata and transcript MCP server.
+  vpn-control:
+    transport: stdio
+    command:
+      - /opt/mcp/vpn-control/server
+    enabled: true
+    tags:
+      - infra
+      - sensitive
+    description: VPN client provisioning and status tools.
