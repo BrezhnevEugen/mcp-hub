@@ -6,6 +6,10 @@ let activeLocale = "en";
 const I18N = {
   en: {
     add: "Add",
+    address: "Address",
+    addressPlaceholder: "https://example.com/mcp",
+    addressRequired: "Address is required",
+    accessToken: "Token",
     actions: "Actions",
     activityFeed: "Activity Feed",
     activitySubtitle: "Latest registry, scan, export, and server events.",
@@ -46,6 +50,7 @@ const I18N = {
     headers: "Headers",
     importedServers: "Imported {count} server(s)",
     import: "Import",
+    invalidAddress: "Enter a valid URL or hostname",
     localeLabel: "Locale",
     locale_en: "English",
     locale_ru: "Russian",
@@ -105,6 +110,8 @@ const I18N = {
     taskNoRemaining: "No open operational items.",
     tags: "Tags",
     target: "Command / URL",
+    tokenPlaceholder: "sk-...",
+    tokenRequired: "Token is required",
     transport: "Transport",
     unchanged: "unchanged",
     unitSubtitle: "{transport} · {actions} action(s) · {status}",
@@ -113,6 +120,10 @@ const I18N = {
   },
   ru: {
     add: "Добавить",
+    address: "Адрес",
+    addressPlaceholder: "https://example.com/mcp",
+    addressRequired: "Адрес обязателен",
+    accessToken: "Токен",
     actions: "Навыки",
     activityFeed: "Лента событий",
     activitySubtitle: "Последние события реестра, сканирования, экспорта и серверов.",
@@ -153,6 +164,7 @@ const I18N = {
     headers: "Заголовки",
     importedServers: "Импортировано серверов: {count}",
     import: "Импорт",
+    invalidAddress: "Введите корректный URL или домен",
     localeLabel: "Язык",
     locale_en: "English",
     locale_ru: "Русский",
@@ -212,6 +224,8 @@ const I18N = {
     taskNoRemaining: "Открытых операционных пунктов нет.",
     tags: "Теги",
     target: "Команда / URL",
+    tokenPlaceholder: "sk-...",
+    tokenRequired: "Токен обязателен",
     transport: "Транспорт",
     unchanged: "без изменений",
     unitSubtitle: "{transport} · {actions} навык(ов) · {status}",
@@ -361,11 +375,8 @@ const el = {
   docsBody: document.querySelector("#docsBody"),
   addDialog: document.querySelector("#addDialog"),
   addName: document.querySelector("#addName"),
-  addTransport: document.querySelector("#addTransport"),
-  addCommand: document.querySelector("#addCommand"),
   addUrl: document.querySelector("#addUrl"),
-  addProfile: document.querySelector("#addProfile"),
-  addTags: document.querySelector("#addTags"),
+  addToken: document.querySelector("#addToken"),
   addBtn: document.querySelector("#addBtn"),
   importDialog: document.querySelector("#importDialog"),
   importClient: document.querySelector("#importClient"),
@@ -469,7 +480,6 @@ function render() {
   renderVersionBadge();
   el.configPath.textContent = state.configDir;
   renderClientSelects();
-  renderAddForm();
   renderProfileFilter();
   renderScanProfileSelect();
   renderProgressSummary();
@@ -516,12 +526,6 @@ function renderVersionBadge() {
     catalog: app.catalogSchemaVersion || 1,
     state: app.uiStateVersion || 1,
   });
-}
-
-function renderAddForm() {
-  const isRemote = el.addTransport.value === "http";
-  el.addCommand.disabled = isRemote;
-  el.addUrl.disabled = !isRemote;
 }
 
 function renderClientSelects() {
@@ -867,19 +871,17 @@ async function importServers() {
 }
 
 async function addServer() {
-  const transport = el.addTransport.value;
+  const url = normalizeRemoteUrl(el.addUrl.value);
+  const token = authorizationHeader(el.addToken.value);
   const payload = {
     action: "create",
-    name: el.addName.value.trim(),
-    transport,
-    profile: el.addProfile.value.trim(),
-    tags: el.addTags.value.split(",").map((item) => item.trim()).filter(Boolean),
+    name: el.addName.value.trim() || serverNameFromUrl(url),
+    transport: "http",
+    url,
+    headers: { Authorization: token },
+    profile: "default",
+    tags: ["remote"],
   };
-  if (transport === "http") {
-    payload.url = el.addUrl.value.trim();
-  } else {
-    payload.command = el.addCommand.value.trim();
-  }
   const result = await api("/api/server", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -894,9 +896,35 @@ async function addServer() {
 
 function clearAddForm() {
   el.addName.value = "";
-  el.addCommand.value = "";
   el.addUrl.value = "";
-  el.addTags.value = "";
+  el.addToken.value = "";
+}
+
+function normalizeRemoteUrl(value) {
+  const trimmed = value.trim();
+  if (!trimmed) throw new Error(t("addressRequired"));
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (!["http:", "https:"].includes(url.protocol) || !url.hostname) {
+      throw new Error();
+    }
+    return url.href;
+  } catch {
+    throw new Error(t("invalidAddress"));
+  }
+}
+
+function authorizationHeader(value) {
+  let token = value.trim();
+  if (!token) throw new Error(t("tokenRequired"));
+  token = token.replace(/^authorization\s*:\s*/i, "");
+  return /^bearer\s+/i.test(token) ? token : `Bearer ${token}`;
+}
+
+function serverNameFromUrl(value) {
+  const url = new URL(value);
+  return url.hostname.replace(/^www\./i, "").toLowerCase();
 }
 
 async function deleteSelectedServer() {
@@ -1024,7 +1052,6 @@ el.sideAddOpenBtn.addEventListener("click", openAddDialog);
 el.sideImportOpenBtn.addEventListener("click", openImportDialog);
 el.sideScanOpenBtn.addEventListener("click", openScanDialog);
 el.docsOpenBtn.addEventListener("click", openDocsDialog);
-el.addTransport.addEventListener("change", renderAddForm);
 el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast(error.message)));
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
 el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));

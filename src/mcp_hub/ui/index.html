@@ -135,19 +135,10 @@
         <div class="operation-card">
           <label class="field-label" for="addName" data-i18n="name">Name</label>
           <input id="addName" type="text" placeholder="server-name">
-          <label class="field-label" for="addTransport" data-i18n="transport">Transport</label>
-          <select id="addTransport">
-            <option value="stdio">stdio</option>
-            <option value="http" data-i18n="remoteHttp">remote http</option>
-          </select>
-          <label class="field-label" for="addCommand" data-i18n="command">Command</label>
-          <input id="addCommand" type="text" placeholder="python3 -m package.server">
-          <label class="field-label" for="addUrl" data-i18n="url">URL</label>
-          <input id="addUrl" type="text" placeholder="https://example.com/mcp">
-          <label class="field-label" for="addProfile" data-i18n="profile">Profile</label>
-          <input id="addProfile" type="text" value="default">
-          <label class="field-label" for="addTags" data-i18n="tags">Tags</label>
-          <input id="addTags" type="text" placeholder="local, tools">
+          <label class="field-label" for="addUrl" data-i18n="address">Address</label>
+          <input id="addUrl" type="url" placeholder="https://example.com/mcp" data-i18n-placeholder="addressPlaceholder" autocomplete="url">
+          <label class="field-label" for="addToken" data-i18n="accessToken">Token</label>
+          <input id="addToken" type="password" placeholder="sk-..." data-i18n-placeholder="tokenPlaceholder" autocomplete="off">
           <button id="addBtn" class="wide-button primary-button" type="button" data-i18n="add">Add</button>
         </div>
       </form>

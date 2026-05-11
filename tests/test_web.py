@@ -53,6 +53,22 @@ def test_ui_assets_include_progress_summary() -> None:
     assert "renderCatalogStats" not in app_js
 
 
+def test_ui_manual_add_form_keeps_only_name_address_and_token() -> None:
+    ui_files = resources.files("mcp_hub").joinpath("ui")
+    html = ui_files.joinpath("index.html").read_text(encoding="utf-8")
+    app_js = ui_files.joinpath("app.js").read_text(encoding="utf-8")
+
+    assert 'id="addName"' in html
+    assert 'id="addUrl"' in html
+    assert 'id="addToken"' in html
+    assert 'id="addTransport"' not in html
+    assert 'id="addCommand"' not in html
+    assert 'id="addProfile"' not in html
+    assert 'id="addTags"' not in html
+    assert 'transport: "http"' in app_js
+    assert "authorizationHeader" in app_js
+
+
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.init()
@@ -203,6 +219,30 @@ def test_create_server_adds_stdio_server_to_profile(tmp_path: Path) -> None:
     assert result == {"server": "demo", "created": True}
     assert hub.load_servers()["demo"].command == ["python3", "-m", "demo.server"]
     assert hub.load_profiles()["tools"] == ["demo"]
+
+
+def test_create_server_adds_http_server_with_headers_to_profile(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.init()
+
+    result = create_server(
+        hub,
+        {
+            "name": "remote-demo",
+            "transport": "http",
+            "url": "https://example.com/mcp",
+            "profile": "default",
+            "tags": ["remote"],
+            "headers": {"Authorization": "Bearer secret"},
+        },
+    )
+
+    server = hub.load_servers()["remote-demo"]
+    assert result == {"server": "remote-demo", "created": True}
+    assert server.transport == "http"
+    assert server.url == "https://example.com/mcp"
+    assert server.headers == {"Authorization": "Bearer secret"}
+    assert hub.load_profiles()["default"] == ["remote-demo"]
 
 
 def test_delete_server_removes_from_profiles_and_snapshots(tmp_path: Path) -> None:
