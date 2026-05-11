@@ -7,7 +7,12 @@ import shlex
 import sys
 
 from .config import HubConfig
-from .importers import DEFAULT_CODEX_CONFIG, import_codex_servers
+from .importers import (
+    DEFAULT_CLAUDE_DESKTOP_CONFIG,
+    DEFAULT_CODEX_CONFIG,
+    import_claude_desktop_servers,
+    import_codex_servers,
+)
 from .mcp_client import MCPError, list_tools
 from .models import ServerConfig
 from .scanner import compare_tools
@@ -61,8 +66,14 @@ def main(argv: list[str] | None = None) -> int:
     export_parser.add_argument("--profile", default="default")
 
     import_parser = subparsers.add_parser("import", help="Import MCP servers from another client.")
-    import_parser.add_argument("client", choices=["codex"])
-    import_parser.add_argument("--path", help=f"Client config path. Defaults to {DEFAULT_CODEX_CONFIG}.")
+    import_parser.add_argument("client", choices=["codex", "claude-desktop"])
+    import_parser.add_argument(
+        "--path",
+        help=(
+            "Client config path. Defaults to "
+            f"{DEFAULT_CODEX_CONFIG} for Codex or {DEFAULT_CLAUDE_DESKTOP_CONFIG} for Claude Desktop."
+        ),
+    )
     import_parser.add_argument("--profile", help="Add imported servers to a profile.")
 
     args = parser.parse_args(argv)
@@ -102,7 +113,7 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         for server in servers.values():
             tags = f" [{', '.join(server.tags)}]" if server.tags else ""
             state = "enabled" if server.enabled else "disabled"
-            print(f"{server.name}\t{state}\t{server.transport}\t{shlex.join(server.command)}{tags}")
+            print(f"{server.name}\t{state}\t{server.transport}\t{_format_command(server.command)}{tags}")
         return 0
 
     if args.subcommand == "show":
@@ -114,7 +125,7 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
             print(f"name: {server.name}")
             print(f"enabled: {str(server.enabled).lower()}")
             print(f"transport: {server.transport}")
-            print(f"command: {shlex.join(server.command)}")
+            print(f"command: {_format_command(server.command)}")
             if server.tags:
                 print(f"tags: {', '.join(server.tags)}")
             if server.description:
@@ -266,7 +277,27 @@ def _add_servers_to_profile(hub: HubConfig, profile_name: str, server_names: lis
 def _import_servers(client: str, path: Path | None) -> dict[str, ServerConfig]:
     if client == "codex":
         return import_codex_servers(path or DEFAULT_CODEX_CONFIG)
+    if client == "claude-desktop":
+        return import_claude_desktop_servers(path or DEFAULT_CLAUDE_DESKTOP_CONFIG)
     raise ValueError(f"unsupported import client: {client}")
+
+
+def _format_command(command: list[str]) -> str:
+    return shlex.join([_redact_arg(arg) for arg in command])
+
+
+def _redact_arg(value: str) -> str:
+    lower = value.lower()
+    sensitive_markers = ("authorization: bearer ", "bearer ", "api_key=", "apikey=", "token=", "secret=")
+    if any(marker in lower for marker in sensitive_markers):
+        return _redact_sensitive_value(value)
+    return value
+
+
+def _redact_sensitive_value(value: str) -> str:
+    if len(value) <= 12:
+        return "[redacted]"
+    return f"{value[:8]}...[redacted]"
 
 
 def _scan_tools(hub: HubConfig, profile: str | None) -> list[dict[str, object]]:

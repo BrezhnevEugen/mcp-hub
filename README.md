@@ -44,6 +44,12 @@ Import existing Codex MCP servers:
 mcp-hub import codex --profile default
 ```
 
+Import existing Claude Desktop MCP servers:
+
+```bash
+mcp-hub import claude-desktop --profile default
+```
+
 Temporarily disable a server without deleting it:
 
 ```bash
