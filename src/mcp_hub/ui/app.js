@@ -15,9 +15,6 @@ const el = {
   searchBox: document.querySelector("#searchBox"),
   detailsBody: document.querySelector("#detailsBody"),
   refreshBtn: document.querySelector("#refreshBtn"),
-  addOpenBtn: document.querySelector("#addOpenBtn"),
-  importOpenBtn: document.querySelector("#importOpenBtn"),
-  scanBtn: document.querySelector("#scanBtn"),
   sideAddOpenBtn: document.querySelector("#sideAddOpenBtn"),
   sideImportOpenBtn: document.querySelector("#sideImportOpenBtn"),
   sideScanOpenBtn: document.querySelector("#sideScanOpenBtn"),
@@ -482,9 +479,6 @@ function openScanDialog() {
   el.scanProfileSelect.focus();
 }
 
-el.addOpenBtn.addEventListener("click", openAddDialog);
-el.importOpenBtn.addEventListener("click", openImportDialog);
-el.scanBtn.addEventListener("click", openScanDialog);
 el.sideAddOpenBtn.addEventListener("click", openAddDialog);
 el.sideImportOpenBtn.addEventListener("click", openImportDialog);
 el.sideScanOpenBtn.addEventListener("click", openScanDialog);
