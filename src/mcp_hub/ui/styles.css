@@ -226,31 +226,6 @@ h2 {
   margin-bottom: 10px;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.stat {
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-  padding: 10px;
-}
-
-.stat-value {
-  font-size: 22px;
-  line-height: 1;
-  font-weight: 700;
-}
-
-.stat-label {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 5px;
-}
-
 .field-label {
   display: block;
   color: var(--muted);

@@ -48,7 +48,9 @@ def test_ui_assets_include_progress_summary() -> None:
     assert 'id="progressStats"' in html
     assert 'id="doneList"' in html
     assert 'id="remainingList"' in html
+    assert 'id="serverCount"' not in html
     assert "renderProgressSummary" in app_js
+    assert "renderCatalogStats" not in app_js
 
 
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:

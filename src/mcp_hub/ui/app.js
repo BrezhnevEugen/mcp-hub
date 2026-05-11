@@ -343,10 +343,6 @@ const el = {
   versionBadge: document.querySelector("#versionBadge"),
   configPath: document.querySelector("#configPath"),
   localeSelect: document.querySelector("#localeSelect"),
-  serverCount: document.querySelector("#serverCount"),
-  enabledCount: document.querySelector("#enabledCount"),
-  stdioCount: document.querySelector("#stdioCount"),
-  remoteCount: document.querySelector("#remoteCount"),
   profileFilter: document.querySelector("#profileFilter"),
   serversTable: document.querySelector("#serversTable"),
   activeTitle: document.querySelector("#activeTitle"),
@@ -474,7 +470,6 @@ function render() {
   el.configPath.textContent = state.configDir;
   renderClientSelects();
   renderAddForm();
-  renderCatalogStats();
   renderProfileFilter();
   renderScanProfileSelect();
   renderProgressSummary();
@@ -539,16 +534,6 @@ function renderClientSelects() {
       select.append(option);
     }
   }
-}
-
-function renderCatalogStats() {
-  const enabled = state.servers.filter((server) => server.enabled).length;
-  const stdio = state.servers.filter((server) => server.transport === "stdio").length;
-  const actions = state.servers.reduce((total, server) => total + (server.toolCount || 0), 0);
-  el.serverCount.textContent = String(state.servers.length);
-  el.enabledCount.textContent = String(enabled);
-  el.stdioCount.textContent = String(stdio);
-  el.remoteCount.textContent = String(actions);
 }
 
 function renderProgressSummary() {
