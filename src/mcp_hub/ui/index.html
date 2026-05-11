@@ -124,7 +124,10 @@
           <section class="details">
             <div class="panel-head">
               <h2>Details</h2>
-              <button id="deleteBtn" class="danger-button">Delete</button>
+              <div class="details-actions">
+                <button id="openUnitBtn">Open Card</button>
+                <button id="deleteBtn" class="danger-button">Delete</button>
+              </div>
             </div>
             <div id="detailsBody" class="details-body"></div>
           </section>
@@ -139,6 +142,19 @@
           <button class="icon-button" value="cancel" title="Close">X</button>
         </div>
         <pre id="exportOutput"></pre>
+      </form>
+    </dialog>
+
+    <dialog id="unitDialog" class="unit-dialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <div>
+            <h2 id="unitTitle">MCP Unit</h2>
+            <div id="unitSubtitle" class="subtle"></div>
+          </div>
+          <button class="icon-button" value="cancel" title="Close">X</button>
+        </div>
+        <div id="unitCardBody" class="unit-card-body"></div>
       </form>
     </dialog>
 

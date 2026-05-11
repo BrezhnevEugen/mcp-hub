@@ -32,6 +32,11 @@ const el = {
   exportBtn: document.querySelector("#exportBtn"),
   exportDialog: document.querySelector("#exportDialog"),
   exportOutput: document.querySelector("#exportOutput"),
+  unitDialog: document.querySelector("#unitDialog"),
+  unitTitle: document.querySelector("#unitTitle"),
+  unitSubtitle: document.querySelector("#unitSubtitle"),
+  unitCardBody: document.querySelector("#unitCardBody"),
+  openUnitBtn: document.querySelector("#openUnitBtn"),
   deleteBtn: document.querySelector("#deleteBtn"),
   toast: document.querySelector("#toast"),
 };
@@ -151,7 +156,12 @@ function renderServers() {
       <td>${server.toolCount || 0}</td>
       <td>${renderPills(server.profiles)}</td>
       <td><span class="${server.enabled ? "state-on" : "state-off"}">${server.enabled ? "enabled" : "disabled"}</span></td>
-      <td><button class="toggle-button">${server.enabled ? "Disable" : "Enable"}</button></td>
+      <td>
+        <div class="row-actions">
+          <button class="open-button">Open</button>
+          <button class="toggle-button">${server.enabled ? "Disable" : "Enable"}</button>
+        </div>
+      </td>
     `;
     row.addEventListener("click", (event) => {
       if (event.target.closest("button")) return;
@@ -166,6 +176,11 @@ function renderServers() {
       showToast(`${server.name} ${server.enabled ? "disabled" : "enabled"}`);
       await loadState();
     });
+    row.querySelector(".open-button").addEventListener("click", () => {
+      selectedServer = server.name;
+      render();
+      openUnitCard(server.name);
+    });
     el.serversTable.append(row);
   }
 }
@@ -175,9 +190,11 @@ function renderDetails() {
   if (!server) {
     el.detailsBody.innerHTML = "";
     el.deleteBtn.disabled = true;
+    el.openUnitBtn.disabled = true;
     return;
   }
   el.deleteBtn.disabled = false;
+  el.openUnitBtn.disabled = false;
   const items = [
     ["Name", server.name],
     ["Transport", server.transport],
@@ -219,6 +236,71 @@ function renderToolList(tools) {
           <div class="tool-name mono">${escapeHtml(tool.name)}</div>
           <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
         </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function openUnitCard(name = selectedServer) {
+  const server = state.servers.find((item) => item.name === name);
+  if (!server) return;
+  selectedServer = server.name;
+  renderUnitCard(server);
+  el.unitDialog.showModal();
+}
+
+function renderUnitCard(server) {
+  el.unitTitle.textContent = server.name;
+  el.unitSubtitle.textContent = `${server.transport} · ${server.toolCount || 0} action(s) · ${server.enabled ? "enabled" : "disabled"}`;
+  const fields = [
+    ["Name", server.name],
+    ["Enabled", server.enabled ? "true" : "false"],
+    ["Transport", server.transport],
+    ["Target", server.target || "-"],
+    ["Command", server.command || "-"],
+    ["URL", server.url || "-"],
+    ["Profiles", server.profiles.join(", ") || "-"],
+    ["Tags", server.tags.join(", ") || "-"],
+    ["Env keys", server.envKeys.join(", ") || "-"],
+    ["Header keys", server.headerKeys.join(", ") || "-"],
+    ["Description", server.description || "-"],
+  ];
+  el.unitCardBody.innerHTML = `
+    <section class="unit-section">
+      <h3>Server</h3>
+      <div class="unit-field-grid">
+        ${fields.map(([label, value]) => `
+          <div class="unit-field">
+            <div class="detail-label">${escapeHtml(label)}</div>
+            <div class="detail-value mono">${escapeHtml(value)}</div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+    <section class="unit-section">
+      <h3>Actions</h3>
+      ${renderUnitTools(server.tools || [])}
+    </section>
+  `;
+}
+
+function renderUnitTools(tools) {
+  if (!tools.length) {
+    return `<div class="empty-actions">No actions scanned yet</div>`;
+  }
+  return `
+    <div class="unit-tool-list">
+      ${tools.map((tool) => `
+        <article class="unit-tool">
+          <div class="unit-tool-head">
+            <div>
+              <div class="tool-name mono">${escapeHtml(tool.name)}</div>
+              <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
+            </div>
+            <span class="schema-state">${tool.inputSchema ? "schema" : "no schema"}</span>
+          </div>
+          ${tool.inputSchema ? `<pre class="schema-block">${escapeHtml(JSON.stringify(tool.inputSchema, null, 2))}</pre>` : ""}
+        </article>
       `).join("")}
     </div>
   `;
@@ -334,6 +416,7 @@ el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
 el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));
 el.scanBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
+el.openUnitBtn.addEventListener("click", () => openUnitCard());
 el.deleteBtn.addEventListener("click", () => deleteSelectedServer().catch((error) => showToast(error.message)));
 el.profileFilter.addEventListener("change", () => {
   activeProfile = el.profileFilter.value;

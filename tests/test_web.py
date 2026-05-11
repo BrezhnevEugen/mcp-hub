@@ -24,7 +24,13 @@ def test_build_state_includes_server_tools(tmp_path: Path) -> None:
             "demo": ServerConfig(
                 name="demo",
                 command=["demo"],
-                tools=[{"name": "search", "description": "Search records"}],
+                tools=[
+                    {
+                        "name": "search",
+                        "description": "Search records",
+                        "inputSchema": {"type": "object"},
+                    }
+                ],
             )
         }
     )
@@ -34,7 +40,12 @@ def test_build_state_includes_server_tools(tmp_path: Path) -> None:
 
     assert state["servers"][0]["toolCount"] == 1
     assert state["servers"][0]["tools"] == [
-        {"name": "search", "description": "Search records", "hasInputSchema": False}
+        {
+            "name": "search",
+            "description": "Search records",
+            "hasInputSchema": True,
+            "inputSchema": {"type": "object"},
+        }
     ]
 
 
