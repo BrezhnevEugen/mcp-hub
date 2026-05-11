@@ -9,6 +9,7 @@ import sys
 from .config import HubConfig
 from .mcp_client import MCPError, list_tools
 from .models import ServerConfig
+from .scanner import compare_tools
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -32,6 +33,10 @@ def main(argv: list[str] | None = None) -> int:
 
     status_parser = subparsers.add_parser("status", help="Check registered servers.")
     status_parser.add_argument("--profile", help="Only check servers in a profile.")
+
+    scan_parser = subparsers.add_parser("scan", help="Check tools and diff them against the previous snapshot.")
+    scan_parser.add_argument("--profile", help="Only scan servers in a profile.")
+    scan_parser.add_argument("--json", action="store_true", help="Print JSON result.")
 
     profile_parser = subparsers.add_parser("profile", help="Create or update a profile.")
     profile_parser.add_argument("name")
@@ -104,6 +109,14 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
                 print(f"{server.name}\tok\t{len(tools)} tool(s)")
         return 0
 
+    if args.subcommand == "scan":
+        results = _scan_tools(hub, args.profile)
+        if args.json:
+            print(json.dumps(results, indent=2, ensure_ascii=False))
+        else:
+            _print_scan_results(results)
+        return 2 if any(item.get("changed") for item in results) else 0
+
     if args.subcommand == "profile":
         profiles = hub.load_profiles()
         known = set(hub.load_servers())
@@ -158,6 +171,57 @@ def _export_config(hub: HubConfig, profile: str) -> dict[str, object]:
             for name, server in selected.items()
         }
     }
+
+
+def _scan_tools(hub: HubConfig, profile: str | None) -> list[dict[str, object]]:
+    servers = _servers_for_status(hub, profile)
+    snapshots = hub.load_tool_snapshots()
+    results: list[dict[str, object]] = []
+
+    for server in servers:
+        try:
+            tools = list_tools(server, timeout=5)
+        except Exception as exc:
+            results.append({"server": server.name, "status": "broken", "error": str(exc), "changed": False})
+            continue
+
+        previous = snapshots.get(server.name)
+        changes = compare_tools(server.name, tools, previous)
+        snapshots[server.name] = changes.current
+        results.append(
+            {
+                "server": server.name,
+                "status": "ok",
+                "tool_count": len(changes.current),
+                "first_scan": changes.first_scan,
+                "changed": changes.changed,
+                "added": changes.added,
+                "removed": changes.removed,
+            }
+        )
+
+    hub.save_tool_snapshots(snapshots)
+    return results
+
+
+def _print_scan_results(results: list[dict[str, object]]) -> None:
+    for item in results:
+        server = item["server"]
+        if item["status"] != "ok":
+            print(f"{server}\tbroken\t{item['error']}")
+            continue
+        if item["first_scan"]:
+            print(f"{server}\tbaseline\t{item['tool_count']} tool(s)")
+            continue
+        if not item["changed"]:
+            print(f"{server}\tunchanged\t{item['tool_count']} tool(s)")
+            continue
+
+        print(f"{server}\tchanged\t{item['tool_count']} tool(s)")
+        for name in item["added"]:
+            print(f"  + {name}")
+        for name in item["removed"]:
+            print(f"  - {name}")
 
 
 if __name__ == "__main__":

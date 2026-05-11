@@ -32,6 +32,7 @@ mcp-hub init
 mcp-hub add yt-sub --command "python3 -m yt_sub.server" --tag media --tag transcript
 mcp-hub list
 mcp-hub inspect yt-sub
+mcp-hub scan --profile content
 mcp-hub profile content yt-sub
 mcp-hub export codex --profile content
 ```
@@ -76,3 +77,13 @@ profiles:
 - Add audit logs for inspect/status/export.
 - Add a local dashboard.
 - Add remote deployment helpers for sensitive infrastructure MCP servers.
+
+## Periodic capability checks
+
+`mcp-hub scan` stores the last known tool names in `tool-snapshots.yaml` and reports changes on the next run:
+
+```bash
+mcp-hub scan --profile content
+```
+
+Exit code `2` means at least one server changed its tool list. Exit code `0` means no changes were detected.

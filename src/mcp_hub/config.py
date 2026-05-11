@@ -17,6 +17,7 @@ class HubConfig:
         self.config_dir = config_dir
         self.registry_path = config_dir / "registry.yaml"
         self.profiles_path = config_dir / "profiles.yaml"
+        self.snapshots_path = config_dir / "tool-snapshots.yaml"
 
     def init(self) -> None:
         self.config_dir.mkdir(parents=True, exist_ok=True)
@@ -58,6 +59,23 @@ class HubConfig:
         self.init()
         data = {"profiles": {name: {"servers": servers} for name, servers in sorted(profiles.items())}}
         self._write_yaml(self.profiles_path, data)
+
+    def load_tool_snapshots(self) -> dict[str, list[str]]:
+        data = self._read_yaml(self.snapshots_path, default={"servers": {}})
+        servers = data.get("servers", {})
+        if not isinstance(servers, dict):
+            raise ValueError("tool-snapshots.yaml must contain a servers mapping")
+        result: dict[str, list[str]] = {}
+        for name, tools in servers.items():
+            if not isinstance(tools, list) or not all(isinstance(item, str) for item in tools):
+                raise ValueError(f"snapshot for {name!r} must be a tool name list")
+            result[name] = tools
+        return result
+
+    def save_tool_snapshots(self, snapshots: dict[str, list[str]]) -> None:
+        self.init()
+        data = {"servers": {name: sorted(tools) for name, tools in sorted(snapshots.items())}}
+        self._write_yaml(self.snapshots_path, data)
 
     def _read_yaml(self, path: Path, default: dict[str, Any]) -> dict[str, Any]:
         if not path.exists():
