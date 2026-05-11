@@ -23,9 +23,26 @@
         <aside class="sidebar">
           <section class="panel">
             <div class="panel-head">
-              <h2>Profiles</h2>
+              <h2>Catalog</h2>
             </div>
-            <div id="profilesList" class="profile-list"></div>
+            <div class="stats-grid">
+              <div class="stat">
+                <div id="serverCount" class="stat-value">0</div>
+                <div class="stat-label">Servers</div>
+              </div>
+              <div class="stat">
+                <div id="enabledCount" class="stat-value">0</div>
+                <div class="stat-label">Enabled</div>
+              </div>
+              <div class="stat">
+                <div id="stdioCount" class="stat-value">0</div>
+                <div class="stat-label">Stdio</div>
+              </div>
+              <div class="stat">
+                <div id="remoteCount" class="stat-value">0</div>
+                <div class="stat-label">Remote</div>
+              </div>
+            </div>
           </section>
 
           <section class="panel">
@@ -54,10 +71,16 @@
         <section class="workspace">
           <div class="workspace-head">
             <div>
-              <h2 id="activeTitle">Servers</h2>
+              <h2 id="activeTitle">MCP Servers</h2>
               <div id="summaryLine" class="subtle"></div>
             </div>
-            <input id="searchBox" class="search" type="search" placeholder="Search">
+            <div class="toolbar">
+              <label class="inline-field">
+                <span>Profile</span>
+                <select id="profileFilter"></select>
+              </label>
+              <input id="searchBox" class="search" type="search" placeholder="Search servers">
+            </div>
           </div>
 
           <div class="table-wrap">

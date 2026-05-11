@@ -4,7 +4,11 @@ let selectedServer = null;
 
 const el = {
   configPath: document.querySelector("#configPath"),
-  profilesList: document.querySelector("#profilesList"),
+  serverCount: document.querySelector("#serverCount"),
+  enabledCount: document.querySelector("#enabledCount"),
+  stdioCount: document.querySelector("#stdioCount"),
+  remoteCount: document.querySelector("#remoteCount"),
+  profileFilter: document.querySelector("#profileFilter"),
   serversTable: document.querySelector("#serversTable"),
   activeTitle: document.querySelector("#activeTitle"),
   summaryLine: document.querySelector("#summaryLine"),
@@ -66,7 +70,8 @@ function serversForProfile(name) {
 function render() {
   el.configPath.textContent = state.configDir;
   renderClientSelects();
-  renderProfiles();
+  renderCatalogStats();
+  renderProfileFilter();
   renderServers();
   renderDetails();
 }
@@ -83,21 +88,29 @@ function renderClientSelects() {
   }
 }
 
-function renderProfiles() {
-  el.profilesList.innerHTML = "";
-  for (const name of profileNames()) {
-    const button = document.createElement("button");
-    button.className = `profile-button${name === activeProfile ? " active" : ""}`;
-    button.type = "button";
-    const count = serversForProfile(name).length;
-    button.innerHTML = `<span>${escapeHtml(name)}</span><span class="count">${count}</span>`;
-    button.addEventListener("click", () => {
-      activeProfile = name;
-      selectedServer = serversForProfile(name)[0]?.name || null;
-      render();
-    });
-    el.profilesList.append(button);
+function renderCatalogStats() {
+  const enabled = state.servers.filter((server) => server.enabled).length;
+  const stdio = state.servers.filter((server) => server.transport === "stdio").length;
+  const remote = state.servers.filter((server) => server.transport !== "stdio").length;
+  el.serverCount.textContent = String(state.servers.length);
+  el.enabledCount.textContent = String(enabled);
+  el.stdioCount.textContent = String(stdio);
+  el.remoteCount.textContent = String(remote);
+}
+
+function renderProfileFilter() {
+  const names = profileNames();
+  const currentOptions = Array.from(el.profileFilter.options).map((option) => option.value);
+  if (currentOptions.join("\n") !== names.join("\n")) {
+    el.profileFilter.innerHTML = "";
+    for (const name of names) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = `${name} (${serversForProfile(name).length})`;
+      el.profileFilter.append(option);
+    }
   }
+  el.profileFilter.value = activeProfile;
 }
 
 function renderServers() {
@@ -106,9 +119,10 @@ function renderServers() {
     const haystack = `${server.name} ${server.transport} ${server.target} ${server.profiles.join(" ")}`.toLowerCase();
     return haystack.includes(query);
   });
-  el.activeTitle.textContent = activeProfile === "all" ? "Servers" : `Profile: ${activeProfile}`;
+  el.activeTitle.textContent = "MCP Servers";
   const enabled = servers.filter((server) => server.enabled).length;
-  el.summaryLine.textContent = `${servers.length} server(s), ${enabled} enabled`;
+  const profileText = activeProfile === "all" ? "all profiles" : `profile ${activeProfile}`;
+  el.summaryLine.textContent = `${servers.length} server(s), ${enabled} enabled, ${profileText}`;
   el.serversTable.innerHTML = "";
   for (const server of servers) {
     const row = document.createElement("tr");
@@ -226,6 +240,11 @@ el.refreshBtn.addEventListener("click", () => loadState().then(() => showToast("
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
 el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));
 el.scanBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
+el.profileFilter.addEventListener("change", () => {
+  activeProfile = el.profileFilter.value;
+  selectedServer = serversForProfile(activeProfile)[0]?.name || null;
+  render();
+});
 el.searchBox.addEventListener("input", renderServers);
 
 loadState().catch((error) => showToast(error.message));
