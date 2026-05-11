@@ -151,13 +151,8 @@ h2 {
   margin-top: 10px;
 }
 
-summary {
-  cursor: pointer;
-  font-weight: 650;
-}
-
-.collapsed-panel {
-  padding-bottom: 14px;
+.operation-list .wide-button:first-child {
+  margin-top: 0;
 }
 
 .layout {
@@ -395,6 +390,64 @@ dialog {
 
 dialog::backdrop {
   background: rgb(23 32 42 / 0.28);
+}
+
+.operation-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.operation-card {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.scan-result {
+  margin-top: 14px;
+}
+
+.scan-list {
+  display: grid;
+  gap: 8px;
+}
+
+.scan-item {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 9px 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.scan-server {
+  font-weight: 650;
+}
+
+.scan-status {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: #f8fafc;
+  font-size: 12px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.scan-status.ok {
+  border-color: #b8d5c9;
+  color: var(--accent-strong);
+}
+
+.scan-status.broken {
+  border-color: #d7a8a8;
+  color: var(--danger);
+}
+
+.scan-status.skipped {
+  border-color: #d9c39e;
+  color: var(--warning);
 }
 
 .unit-dialog {

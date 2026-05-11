@@ -16,8 +16,12 @@ const el = {
   detailsBody: document.querySelector("#detailsBody"),
   refreshBtn: document.querySelector("#refreshBtn"),
   addOpenBtn: document.querySelector("#addOpenBtn"),
+  importOpenBtn: document.querySelector("#importOpenBtn"),
   scanBtn: document.querySelector("#scanBtn"),
-  addPanel: document.querySelector("#addPanel"),
+  sideAddOpenBtn: document.querySelector("#sideAddOpenBtn"),
+  sideImportOpenBtn: document.querySelector("#sideImportOpenBtn"),
+  sideScanOpenBtn: document.querySelector("#sideScanOpenBtn"),
+  addDialog: document.querySelector("#addDialog"),
   addName: document.querySelector("#addName"),
   addTransport: document.querySelector("#addTransport"),
   addCommand: document.querySelector("#addCommand"),
@@ -25,9 +29,14 @@ const el = {
   addProfile: document.querySelector("#addProfile"),
   addTags: document.querySelector("#addTags"),
   addBtn: document.querySelector("#addBtn"),
+  importDialog: document.querySelector("#importDialog"),
   importClient: document.querySelector("#importClient"),
   importPath: document.querySelector("#importPath"),
   importBtn: document.querySelector("#importBtn"),
+  scanDialog: document.querySelector("#scanDialog"),
+  scanProfileSelect: document.querySelector("#scanProfileSelect"),
+  scanRunBtn: document.querySelector("#scanRunBtn"),
+  scanResult: document.querySelector("#scanResult"),
   exportClient: document.querySelector("#exportClient"),
   exportBtn: document.querySelector("#exportBtn"),
   exportDialog: document.querySelector("#exportDialog"),
@@ -87,6 +96,7 @@ function render() {
   renderAddForm();
   renderCatalogStats();
   renderProfileFilter();
+  renderScanProfileSelect();
   renderServers();
   renderDetails();
 }
@@ -132,6 +142,21 @@ function renderProfileFilter() {
     }
   }
   el.profileFilter.value = activeProfile;
+}
+
+function renderScanProfileSelect() {
+  const names = profileNames();
+  const currentOptions = Array.from(el.scanProfileSelect.options).map((option) => option.value);
+  if (currentOptions.join("\n") !== names.join("\n")) {
+    el.scanProfileSelect.innerHTML = "";
+    for (const name of names) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = `${name} (${serversForProfile(name).length})`;
+      el.scanProfileSelect.append(option);
+    }
+  }
+  el.scanProfileSelect.value = names.includes(activeProfile) ? activeProfile : "all";
 }
 
 function renderServers() {
@@ -316,7 +341,8 @@ async function importServers() {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  showToast(`Synced ${result.imported.length} server(s)`);
+  el.importDialog.close();
+  showToast(`Imported ${result.imported.length} server(s)`);
   await loadState();
 }
 
@@ -341,6 +367,7 @@ async function addServer() {
   selectedServer = result.server;
   activeProfile = payload.profile || "all";
   clearAddForm();
+  el.addDialog.close();
   showToast(`Added ${result.server}`);
   await loadState();
 }
@@ -376,14 +403,45 @@ async function exportProfile() {
 }
 
 async function scanProfile() {
+  const profile = el.scanProfileSelect.value || activeProfile;
+  el.scanResult.innerHTML = `<div class="empty-actions">Scanning...</div>`;
   const result = await api("/api/scan", {
     method: "POST",
-    body: JSON.stringify({ profile: activeProfile === "all" ? null : activeProfile }),
+    body: JSON.stringify({ profile: profile === "all" ? null : profile }),
   });
   const broken = result.results.filter((item) => item.status === "broken").length;
   const changed = result.results.filter((item) => item.changed).length;
+  renderScanResults(result.results);
   showToast(`Scan: ${changed} changed, ${broken} broken`);
   await loadState();
+}
+
+function renderScanResults(results) {
+  if (!results.length) {
+    el.scanResult.innerHTML = `<div class="empty-actions">No servers scanned</div>`;
+    return;
+  }
+  el.scanResult.innerHTML = `
+    <div class="scan-list">
+      ${results.map((item) => `
+        <div class="scan-item">
+          <div>
+            <div class="scan-server">${escapeHtml(item.server)}</div>
+            <div class="subtle">${escapeHtml(scanResultSummary(item))}</div>
+          </div>
+          <span class="scan-status ${escapeAttr(item.status)}">${escapeHtml(item.status)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function scanResultSummary(item) {
+  if (item.status === "ok") {
+    const marker = item.firstScan ? "baseline" : item.changed ? "changed" : "unchanged";
+    return `${item.toolCount} action(s), ${marker}`;
+  }
+  return item.error || item.reason || "-";
 }
 
 function showToast(message) {
@@ -407,15 +465,34 @@ function escapeAttr(value) {
 }
 
 el.refreshBtn.addEventListener("click", () => loadState().then(() => showToast("Refreshed")).catch((error) => showToast(error.message)));
-el.addOpenBtn.addEventListener("click", () => {
-  el.addPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+function openAddDialog() {
+  el.addDialog.showModal();
   el.addName.focus();
-});
+}
+
+function openImportDialog() {
+  el.importDialog.showModal();
+  el.importClient.focus();
+}
+
+function openScanDialog() {
+  renderScanProfileSelect();
+  el.scanResult.innerHTML = "";
+  el.scanDialog.showModal();
+  el.scanProfileSelect.focus();
+}
+
+el.addOpenBtn.addEventListener("click", openAddDialog);
+el.importOpenBtn.addEventListener("click", openImportDialog);
+el.scanBtn.addEventListener("click", openScanDialog);
+el.sideAddOpenBtn.addEventListener("click", openAddDialog);
+el.sideImportOpenBtn.addEventListener("click", openImportDialog);
+el.sideScanOpenBtn.addEventListener("click", openScanDialog);
 el.addTransport.addEventListener("change", renderAddForm);
 el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast(error.message)));
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
 el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));
-el.scanBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
+el.scanRunBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
 el.openUnitBtn.addEventListener("click", () => openUnitCard());
 el.deleteBtn.addEventListener("click", () => deleteSelectedServer().catch((error) => showToast(error.message)));
 el.profileFilter.addEventListener("change", () => {

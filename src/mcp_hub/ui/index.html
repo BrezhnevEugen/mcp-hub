@@ -15,7 +15,8 @@
         </div>
         <div class="top-actions">
           <button id="refreshBtn" class="icon-button" title="Refresh">R</button>
-          <button id="addOpenBtn" class="primary-button">Add Server</button>
+          <button id="addOpenBtn" class="primary-button">Manual Add</button>
+          <button id="importOpenBtn">Import</button>
           <button id="scanBtn" class="primary-button">Scan</button>
         </div>
       </header>
@@ -46,37 +47,15 @@
             </div>
           </section>
 
-          <section id="addPanel" class="panel">
+          <section class="panel">
             <div class="panel-head">
-              <h2>Add MCP Server</h2>
+              <h2>Operations</h2>
             </div>
-            <label class="field-label" for="addName">Name</label>
-            <input id="addName" type="text" placeholder="server-name">
-            <label class="field-label" for="addTransport">Transport</label>
-            <select id="addTransport">
-              <option value="stdio">stdio</option>
-              <option value="http">remote http</option>
-            </select>
-            <label class="field-label" for="addCommand">Command</label>
-            <input id="addCommand" type="text" placeholder="python3 -m package.server">
-            <label class="field-label" for="addUrl">URL</label>
-            <input id="addUrl" type="text" placeholder="https://example.com/mcp">
-            <label class="field-label" for="addProfile">Profile</label>
-            <input id="addProfile" type="text" value="default">
-            <label class="field-label" for="addTags">Tags</label>
-            <input id="addTags" type="text" placeholder="local, tools">
-            <button id="addBtn" class="wide-button primary-button">Add</button>
-          </section>
-
-          <section class="panel collapsed-panel">
-            <details>
-              <summary>Sync from client</summary>
-              <label class="field-label" for="importClient">Client</label>
-              <select id="importClient"></select>
-              <label class="field-label" for="importPath">Path</label>
-              <input id="importPath" type="text" placeholder="optional">
-              <button id="importBtn" class="wide-button">Sync</button>
-            </details>
+            <div class="operation-list">
+              <button id="sideAddOpenBtn" class="wide-button primary-button">Manual Add</button>
+              <button id="sideImportOpenBtn" class="wide-button">Import</button>
+              <button id="sideScanOpenBtn" class="wide-button">Scan</button>
+            </div>
           </section>
 
           <section class="panel">
@@ -134,6 +113,64 @@
         </section>
       </main>
     </div>
+
+    <dialog id="addDialog" class="operation-dialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <h2>Manual Add</h2>
+          <button class="icon-button" value="cancel" title="Close">X</button>
+        </div>
+        <div class="operation-card">
+          <label class="field-label" for="addName">Name</label>
+          <input id="addName" type="text" placeholder="server-name">
+          <label class="field-label" for="addTransport">Transport</label>
+          <select id="addTransport">
+            <option value="stdio">stdio</option>
+            <option value="http">remote http</option>
+          </select>
+          <label class="field-label" for="addCommand">Command</label>
+          <input id="addCommand" type="text" placeholder="python3 -m package.server">
+          <label class="field-label" for="addUrl">URL</label>
+          <input id="addUrl" type="text" placeholder="https://example.com/mcp">
+          <label class="field-label" for="addProfile">Profile</label>
+          <input id="addProfile" type="text" value="default">
+          <label class="field-label" for="addTags">Tags</label>
+          <input id="addTags" type="text" placeholder="local, tools">
+          <button id="addBtn" class="wide-button primary-button" type="button">Add</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="importDialog" class="operation-dialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <h2>Import</h2>
+          <button class="icon-button" value="cancel" title="Close">X</button>
+        </div>
+        <div class="operation-card">
+          <label class="field-label" for="importClient">Client</label>
+          <select id="importClient"></select>
+          <label class="field-label" for="importPath">Path</label>
+          <input id="importPath" type="text" placeholder="optional">
+          <button id="importBtn" class="wide-button primary-button" type="button">Import</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="scanDialog" class="operation-dialog">
+      <form method="dialog">
+        <div class="dialog-head">
+          <h2>Scan</h2>
+          <button class="icon-button" value="cancel" title="Close">X</button>
+        </div>
+        <div class="operation-card">
+          <label class="field-label" for="scanProfileSelect">Profile</label>
+          <select id="scanProfileSelect"></select>
+          <button id="scanRunBtn" class="wide-button primary-button" type="button">Run Scan</button>
+          <div id="scanResult" class="scan-result"></div>
+        </div>
+      </form>
+    </dialog>
 
     <dialog id="exportDialog">
       <form method="dialog">
