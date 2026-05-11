@@ -15,6 +15,7 @@
         </div>
         <div class="top-actions">
           <button id="refreshBtn" class="icon-button" title="Refresh">R</button>
+          <button id="addOpenBtn" class="primary-button">Add Server</button>
           <button id="scanBtn" class="primary-button">Scan</button>
         </div>
       </header>
@@ -45,17 +46,39 @@
             </div>
           </section>
 
-          <section class="panel">
+          <section id="addPanel" class="panel">
             <div class="panel-head">
-              <h2>Import</h2>
+              <h2>Add MCP Server</h2>
             </div>
-            <label class="field-label" for="importClient">Client</label>
-            <select id="importClient"></select>
-            <label class="field-label" for="importProfile">Profile</label>
-            <input id="importProfile" type="text" value="default">
-            <label class="field-label" for="importPath">Path</label>
-            <input id="importPath" type="text" placeholder="optional">
-            <button id="importBtn" class="wide-button">Import</button>
+            <label class="field-label" for="addName">Name</label>
+            <input id="addName" type="text" placeholder="server-name">
+            <label class="field-label" for="addTransport">Transport</label>
+            <select id="addTransport">
+              <option value="stdio">stdio</option>
+              <option value="http">remote http</option>
+            </select>
+            <label class="field-label" for="addCommand">Command</label>
+            <input id="addCommand" type="text" placeholder="python3 -m package.server">
+            <label class="field-label" for="addUrl">URL</label>
+            <input id="addUrl" type="text" placeholder="https://example.com/mcp">
+            <label class="field-label" for="addProfile">Profile</label>
+            <input id="addProfile" type="text" value="default">
+            <label class="field-label" for="addTags">Tags</label>
+            <input id="addTags" type="text" placeholder="local, tools">
+            <button id="addBtn" class="wide-button primary-button">Add</button>
+          </section>
+
+          <section class="panel collapsed-panel">
+            <details>
+              <summary>Import from client</summary>
+              <label class="field-label" for="importClient">Client</label>
+              <select id="importClient"></select>
+              <label class="field-label" for="importProfile">Profile</label>
+              <input id="importProfile" type="text" value="default">
+              <label class="field-label" for="importPath">Path</label>
+              <input id="importPath" type="text" placeholder="optional">
+              <button id="importBtn" class="wide-button">Import</button>
+            </details>
           </section>
 
           <section class="panel">
@@ -102,6 +125,7 @@
           <section class="details">
             <div class="panel-head">
               <h2>Details</h2>
+              <button id="deleteBtn" class="danger-button">Delete</button>
             </div>
             <div id="detailsBody" class="details-body"></div>
           </section>

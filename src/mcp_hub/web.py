@@ -5,6 +5,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
 from pathlib import Path
+import shlex
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -149,6 +150,12 @@ def import_client(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def update_server(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
+    action = str(payload.get("action", "update"))
+    if action == "create":
+        return create_server(hub, payload)
+    if action == "delete":
+        return delete_server(hub, payload)
+
     name = str(payload.get("name", ""))
     enabled = payload.get("enabled")
     if not name:
@@ -161,6 +168,78 @@ def update_server(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
     servers[name] = servers[name].with_enabled(enabled)
     hub.save_servers(servers)
     return {"server": name, "enabled": enabled}
+
+
+def create_server(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
+    name = str(payload.get("name", "")).strip()
+    transport = str(payload.get("transport", "stdio")).strip()
+    profile = str(payload.get("profile", "")).strip()
+    description = str(payload.get("description", "")).strip()
+    tags = _string_list(payload.get("tags", []))
+    env = _string_map(payload.get("env", {}), "env")
+    headers = _string_map(payload.get("headers", {}), "headers")
+
+    if not name:
+        raise ValueError("name is required")
+    if transport not in {"stdio", "http"}:
+        raise ValueError("transport must be stdio or http")
+
+    if transport == "stdio":
+        command_text = str(payload.get("command", "")).strip()
+        if not command_text:
+            raise ValueError("command is required for stdio servers")
+        server = ServerConfig(
+            name=name,
+            transport="stdio",
+            command=shlex.split(command_text),
+            env=env,
+            tags=tags,
+            description=description,
+        )
+    else:
+        url = str(payload.get("url", "")).strip()
+        if not url:
+            raise ValueError("url is required for remote servers")
+        server = ServerConfig(
+            name=name,
+            transport="http",
+            url=url,
+            headers=headers,
+            tags=tags,
+            description=description,
+        )
+
+    servers = hub.load_servers()
+    servers[name] = server
+    hub.save_servers(servers)
+    if profile:
+        profiles = hub.load_profiles()
+        current = profiles.get(profile, [])
+        profiles[profile] = list(dict.fromkeys([*current, name]))
+        hub.save_profiles(profiles)
+    return {"server": name, "created": True}
+
+
+def delete_server(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
+    name = str(payload.get("name", "")).strip()
+    if not name:
+        raise ValueError("name is required")
+    servers = hub.load_servers()
+    if name not in servers:
+        raise ValueError(f"unknown server: {name}")
+    del servers[name]
+    hub.save_servers(servers)
+
+    profiles = hub.load_profiles()
+    for profile_name, server_names in list(profiles.items()):
+        profiles[profile_name] = [server_name for server_name in server_names if server_name != name]
+    hub.save_profiles(profiles)
+
+    snapshots = hub.load_tool_snapshots()
+    if name in snapshots:
+        del snapshots[name]
+        hub.save_tool_snapshots(snapshots)
+    return {"server": name, "deleted": True}
 
 
 def update_profile(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
@@ -310,3 +389,23 @@ def _single(params: dict[str, list[str]], key: str, default: str) -> str:
     if not values:
         return default
     return values[0]
+
+
+def _string_list(value: object) -> list[str]:
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return value
+    raise ValueError("tags must be a list of strings")
+
+
+def _string_map(value: object, name: str) -> dict[str, str]:
+    if value in ({}, None, ""):
+        return {}
+    if isinstance(value, str):
+        parsed = json.loads(value)
+    else:
+        parsed = value
+    if not isinstance(parsed, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in parsed.items()):
+        raise ValueError(f"{name} must be a string map")
+    return parsed

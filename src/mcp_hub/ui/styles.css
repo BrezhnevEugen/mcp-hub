@@ -64,6 +64,11 @@ input {
   color: var(--text);
 }
 
+input:disabled {
+  background: #edf1f5;
+  color: var(--muted);
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
@@ -119,6 +124,15 @@ h2 {
   background: var(--accent-strong);
 }
 
+.danger-button {
+  border-color: #d7a8a8;
+  color: var(--danger);
+}
+
+.danger-button:hover {
+  border-color: var(--danger);
+}
+
 .icon-button {
   width: 34px;
   padding: 0;
@@ -128,6 +142,15 @@ h2 {
 .wide-button {
   width: 100%;
   margin-top: 10px;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.collapsed-panel {
+  padding-bottom: 14px;
 }
 
 .layout {

@@ -15,7 +15,16 @@ const el = {
   searchBox: document.querySelector("#searchBox"),
   detailsBody: document.querySelector("#detailsBody"),
   refreshBtn: document.querySelector("#refreshBtn"),
+  addOpenBtn: document.querySelector("#addOpenBtn"),
   scanBtn: document.querySelector("#scanBtn"),
+  addPanel: document.querySelector("#addPanel"),
+  addName: document.querySelector("#addName"),
+  addTransport: document.querySelector("#addTransport"),
+  addCommand: document.querySelector("#addCommand"),
+  addUrl: document.querySelector("#addUrl"),
+  addProfile: document.querySelector("#addProfile"),
+  addTags: document.querySelector("#addTags"),
+  addBtn: document.querySelector("#addBtn"),
   importClient: document.querySelector("#importClient"),
   importProfile: document.querySelector("#importProfile"),
   importPath: document.querySelector("#importPath"),
@@ -24,6 +33,7 @@ const el = {
   exportBtn: document.querySelector("#exportBtn"),
   exportDialog: document.querySelector("#exportDialog"),
   exportOutput: document.querySelector("#exportOutput"),
+  deleteBtn: document.querySelector("#deleteBtn"),
   toast: document.querySelector("#toast"),
 };
 
@@ -70,10 +80,17 @@ function serversForProfile(name) {
 function render() {
   el.configPath.textContent = state.configDir;
   renderClientSelects();
+  renderAddForm();
   renderCatalogStats();
   renderProfileFilter();
   renderServers();
   renderDetails();
+}
+
+function renderAddForm() {
+  const isRemote = el.addTransport.value === "http";
+  el.addCommand.disabled = isRemote;
+  el.addUrl.disabled = !isRemote;
 }
 
 function renderClientSelects() {
@@ -156,8 +173,10 @@ function renderDetails() {
   const server = state.servers.find((item) => item.name === selectedServer);
   if (!server) {
     el.detailsBody.innerHTML = "";
+    el.deleteBtn.disabled = true;
     return;
   }
+  el.deleteBtn.disabled = false;
   const items = [
     ["Name", server.name],
     ["Transport", server.transport],
@@ -193,6 +212,51 @@ async function importServers() {
     body: JSON.stringify(payload),
   });
   showToast(`Imported ${result.imported.length} server(s)`);
+  await loadState();
+}
+
+async function addServer() {
+  const transport = el.addTransport.value;
+  const payload = {
+    action: "create",
+    name: el.addName.value.trim(),
+    transport,
+    profile: el.addProfile.value.trim(),
+    tags: el.addTags.value.split(",").map((item) => item.trim()).filter(Boolean),
+  };
+  if (transport === "http") {
+    payload.url = el.addUrl.value.trim();
+  } else {
+    payload.command = el.addCommand.value.trim();
+  }
+  const result = await api("/api/server", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  selectedServer = result.server;
+  activeProfile = payload.profile || "all";
+  clearAddForm();
+  showToast(`Added ${result.server}`);
+  await loadState();
+}
+
+function clearAddForm() {
+  el.addName.value = "";
+  el.addCommand.value = "";
+  el.addUrl.value = "";
+  el.addTags.value = "";
+}
+
+async function deleteSelectedServer() {
+  const server = state.servers.find((item) => item.name === selectedServer);
+  if (!server) return;
+  if (!confirm(`Delete ${server.name} from MCP Hub?`)) return;
+  await api("/api/server", {
+    method: "POST",
+    body: JSON.stringify({ action: "delete", name: server.name }),
+  });
+  showToast(`Deleted ${server.name}`);
+  selectedServer = serversForProfile(activeProfile).find((item) => item.name !== server.name)?.name || null;
   await loadState();
 }
 
@@ -237,9 +301,16 @@ function escapeAttr(value) {
 }
 
 el.refreshBtn.addEventListener("click", () => loadState().then(() => showToast("Refreshed")).catch((error) => showToast(error.message)));
+el.addOpenBtn.addEventListener("click", () => {
+  el.addPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.addName.focus();
+});
+el.addTransport.addEventListener("change", renderAddForm);
+el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast(error.message)));
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
 el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));
 el.scanBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
+el.deleteBtn.addEventListener("click", () => deleteSelectedServer().catch((error) => showToast(error.message)));
 el.profileFilter.addEventListener("change", () => {
   activeProfile = el.profileFilter.value;
   selectedServer = serversForProfile(activeProfile)[0]?.name || null;

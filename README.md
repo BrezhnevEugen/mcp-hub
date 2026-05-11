@@ -11,7 +11,7 @@ MCP Hub keeps a local catalog of MCP servers, groups them into access profiles, 
 - Store access profiles in `profiles.yaml`.
 - Inspect a server by starting it and calling `tools/list`.
 - Export `mcpServers` JSON for Codex, Claude Desktop, and Cursor-compatible clients.
-- Run a local visual interface over the local MCP Hub catalog.
+- Run a local visual interface for adding, deleting, importing, exporting, and toggling MCP servers.
 
 ## Install for development
 
