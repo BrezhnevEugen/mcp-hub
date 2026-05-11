@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import subprocess
 from dataclasses import dataclass
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 from .models import ServerConfig
+
+try:
+    import certifi
+except ImportError:  # pragma: no cover - fallback for minimal environments
+    certifi = None
 
 
 @dataclass(frozen=True)
@@ -33,9 +41,14 @@ def tools_to_mappings(tools: list[ToolInfo]) -> list[dict[str, Any]]:
 
 
 def list_tools(server: ServerConfig, timeout: float = 10.0) -> list[ToolInfo]:
-    if server.transport != "stdio":
-        raise MCPError(f"unsupported transport: {server.transport}")
+    if server.transport == "stdio":
+        return _list_stdio_tools(server, timeout)
+    if server.transport == "http":
+        return _list_http_tools(server, timeout)
+    raise MCPError(f"unsupported transport: {server.transport}")
 
+
+def _list_stdio_tools(server: ServerConfig, timeout: float) -> list[ToolInfo]:
     env = os.environ.copy()
     env.update(server.env)
     process = subprocess.Popen(
@@ -120,3 +133,128 @@ def _read_response(process: subprocess.Popen[str], expected_id: int, timeout: fl
             raise MCPError(str(message["error"]))
         return message
     raise MCPError(f"timed out waiting for response id={expected_id}")
+
+
+def _list_http_tools(server: ServerConfig, timeout: float) -> list[ToolInfo]:
+    initialize = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "mcp-hub", "version": "0.1.0"},
+        },
+    }
+    initialized = {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}
+    tools_list = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
+
+    _, session_id = _post_json_rpc(server, initialize, timeout, expected_id=1)
+    _post_json_rpc(server, initialized, timeout, session_id=session_id)
+    response, _ = _post_json_rpc(server, tools_list, timeout, expected_id=2, session_id=session_id)
+    result = response.get("result", {})
+    tools = result.get("tools", [])
+    if not isinstance(tools, list):
+        raise MCPError("tools/list returned an invalid tools payload")
+    return [
+        ToolInfo(
+            name=str(tool.get("name", "")),
+            description=str(tool.get("description", "")),
+            input_schema=tool.get("inputSchema") if isinstance(tool.get("inputSchema"), dict) else None,
+        )
+        for tool in tools
+        if isinstance(tool, dict) and tool.get("name")
+    ]
+
+
+def _post_json_rpc(
+    server: ServerConfig,
+    message: dict[str, Any],
+    timeout: float,
+    expected_id: int | None = None,
+    session_id: str | None = None,
+) -> tuple[dict[str, Any], str | None]:
+    headers = {
+        "Accept": "application/json, text/event-stream",
+        "Content-Type": "application/json",
+        **server.headers,
+    }
+    if session_id:
+        headers["Mcp-Session-Id"] = session_id
+    request = Request(
+        server.url,
+        data=json.dumps(message).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=timeout, context=_ssl_context()) as response:
+            body = response.read().decode("utf-8")
+            response_headers = response.headers
+            session = response_headers.get("Mcp-Session-Id") or session_id
+            if not body.strip() and expected_id is None:
+                return {}, session
+            return _parse_http_json_rpc(body, expected_id), session
+    except HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace").strip()
+        raise MCPError(f"HTTP {exc.code}: {detail or exc.reason}") from exc
+    except URLError as exc:
+        raise MCPError(str(exc.reason)) from exc
+
+
+def _parse_http_json_rpc(body: str, expected_id: int | None) -> dict[str, Any]:
+    messages = _json_rpc_messages(body)
+    if expected_id is not None:
+        messages = [message for message in messages if message.get("id") == expected_id]
+    if not messages:
+        raise MCPError("remote server returned no matching JSON-RPC response")
+    message = messages[-1]
+    if "error" in message:
+        raise MCPError(str(message["error"]))
+    return message
+
+
+def _ssl_context() -> ssl.SSLContext | None:
+    if certifi is None:
+        return None
+    return ssl.create_default_context(cafile=certifi.where())
+
+
+def _json_rpc_messages(body: str) -> list[dict[str, Any]]:
+    text = body.strip()
+    if not text:
+        return []
+    if text.startswith("event:") or text.startswith("data:") or "\ndata:" in text:
+        messages: list[dict[str, Any]] = []
+        for item in _sse_data_items(text):
+            try:
+                parsed = json.loads(item)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict):
+                messages.append(parsed)
+            elif isinstance(parsed, list):
+                messages.extend(message for message in parsed if isinstance(message, dict))
+        return messages
+    parsed = json.loads(text)
+    if isinstance(parsed, dict):
+        return [parsed]
+    if isinstance(parsed, list):
+        return [item for item in parsed if isinstance(item, dict)]
+    raise MCPError("remote server returned an invalid JSON-RPC payload")
+
+
+def _sse_data_items(text: str) -> list[str]:
+    items: list[str] = []
+    current: list[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            if current:
+                items.append("\n".join(current))
+                current = []
+            continue
+        if line.startswith("data:"):
+            current.append(line.removeprefix("data:").strip())
+    if current:
+        items.append("\n".join(current))
+    return items

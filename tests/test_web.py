@@ -4,7 +4,7 @@ from pathlib import Path
 from mcp_hub.config import HubConfig
 from mcp_hub.mcp_client import ToolInfo
 from mcp_hub.models import ServerConfig
-from mcp_hub.web import build_state, create_server, delete_server, export_profile, scan_profile
+from mcp_hub.web import build_state, create_server, delete_server, export_profile, scan_profile, scan_server
 from mcp_hub.web import import_client
 
 
@@ -67,6 +67,7 @@ def test_ui_manual_add_form_keeps_only_name_address_and_token() -> None:
     assert 'id="addTags"' not in html
     assert 'transport: "http"' in app_js
     assert "authorizationHeader" in app_js
+    assert 'JSON.stringify({ server: result.server })' in app_js
 
 
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:
@@ -304,4 +305,43 @@ def test_scan_profile_stores_discovered_tools(tmp_path: Path, monkeypatch) -> No
             "description": "Search records",
             "inputSchema": {"type": "object"},
         }
+    ]
+
+
+def test_scan_server_stores_discovered_tools_for_http_server(tmp_path: Path, monkeypatch) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers(
+        {
+            "remote": ServerConfig(
+                name="remote",
+                transport="http",
+                url="https://example.com/mcp",
+                headers={"Authorization": "Bearer secret"},
+            )
+        }
+    )
+    hub.save_profiles({"default": ["remote"]})
+
+    def fake_list_tools(server: ServerConfig, timeout: int = 5) -> list[ToolInfo]:
+        assert server.transport == "http"
+        assert server.headers == {"Authorization": "Bearer secret"}
+        return [ToolInfo(name="remote_search", description="Remote search")]
+
+    monkeypatch.setattr("mcp_hub.web.list_tools", fake_list_tools)
+
+    result = scan_server(hub, "remote")
+
+    assert result["results"] == [
+        {
+            "server": "remote",
+            "status": "ok",
+            "toolCount": 1,
+            "changed": False,
+            "firstScan": True,
+            "added": ["remote_search"],
+            "removed": [],
+        }
+    ]
+    assert hub.load_servers()["remote"].tools == [
+        {"name": "remote_search", "description": "Remote search"}
     ]

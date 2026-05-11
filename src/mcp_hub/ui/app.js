@@ -84,6 +84,9 @@ const I18N = {
     scanning: "Scanning...",
     searchServers: "Search servers",
     serverAdded: "Added {server}",
+    serverAddedScanFailed: "Added {server}; scan failed: {error}",
+    serverAddedScanning: "Added {server}; scanning actions...",
+    serverAddedWithActions: "Added {server}; found {count} action(s)",
     serverDisabled: "{server} disabled",
     serverEnabled: "{server} enabled",
     serverSection: "Server",
@@ -198,6 +201,9 @@ const I18N = {
     scanning: "Сканирование...",
     searchServers: "Поиск серверов",
     serverAdded: "Добавлен {server}",
+    serverAddedScanFailed: "Добавлен {server}; сканирование не удалось: {error}",
+    serverAddedScanning: "Добавлен {server}; сканирую навыки...",
+    serverAddedWithActions: "Добавлен {server}; найдено навыков: {count}",
     serverDisabled: "{server} выключен",
     serverEnabled: "{server} включен",
     serverSection: "Сервер",
@@ -269,7 +275,7 @@ const DOCS = {
       body: "The three operational cards handle the main maintenance loop.",
       items: [
         "Import reads client config and merges servers into the local registry.",
-        "Scan starts stdio servers and calls tools/list, then stores readable action names and descriptions.",
+        "Scan connects to stdio or remote HTTP servers, calls tools/list, then stores readable action names and descriptions.",
         "Export produces mcpServers JSON for Codex, Claude Desktop, or Cursor-compatible clients.",
       ],
     },
@@ -326,7 +332,7 @@ const DOCS = {
       body: "Три операционные карточки закрывают основной цикл обслуживания.",
       items: [
         "Импорт читает конфиги клиентов и объединяет серверы с локальным реестром.",
-        "Сканирование запускает stdio-серверы, вызывает tools/list и сохраняет читаемые названия и описания навыков.",
+        "Сканирование подключается к stdio или remote HTTP серверам, вызывает tools/list и сохраняет читаемые названия и описания навыков.",
         "Экспорт формирует mcpServers JSON для Codex, Claude Desktop или Cursor-совместимых клиентов.",
       ],
     },
@@ -746,6 +752,9 @@ function eventMeta(event) {
       broken: event.broken || 0,
       skipped: event.skipped || 0,
     }));
+    if (event.server) {
+      parts.push(`${t("serverSection")}: ${event.server}`);
+    }
   }
   if (event.profile && event.kind !== "profile_update") {
     parts.push(`${t("profile")}: ${event.profile}`);
@@ -890,8 +899,28 @@ async function addServer() {
   activeProfile = payload.profile || "all";
   clearAddForm();
   el.addDialog.close();
-  showToast(t("serverAdded", { server: result.server }));
+  showToast(t("serverAddedScanning", { server: result.server }));
+  let scanResult;
+  try {
+    scanResult = await api("/api/scan", {
+      method: "POST",
+      body: JSON.stringify({ server: result.server }),
+    });
+  } catch (error) {
+    await loadState();
+    showToast(t("serverAddedScanFailed", { server: result.server, error: error.message }));
+    return;
+  }
   await loadState();
+  const scanItem = scanResult.results[0] || {};
+  if (scanItem.status === "ok") {
+    showToast(t("serverAddedWithActions", { server: result.server, count: scanItem.toolCount || 0 }));
+  } else {
+    showToast(t("serverAddedScanFailed", {
+      server: result.server,
+      error: scanItem.error || scanItem.reason || t("noActionsScanned"),
+    }));
+  }
 }
 
 function clearAddForm() {

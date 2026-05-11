@@ -106,8 +106,13 @@ class MCPHubHandler(BaseHTTPRequestHandler):
                 )
                 self._send_json(result)
             elif parsed.path == "/api/scan":
-                result = scan_profile(self.config, payload.get("profile"))
-                _record_scan_event(self.config, payload.get("profile"), result)
+                if payload.get("server"):
+                    server_name = str(payload.get("server"))
+                    result = scan_server(self.config, server_name)
+                    _record_scan_event(self.config, payload.get("profile"), result, server=server_name)
+                else:
+                    result = scan_profile(self.config, payload.get("profile"))
+                    _record_scan_event(self.config, payload.get("profile"), result)
                 self._send_json(result)
             else:
                 self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
@@ -324,13 +329,25 @@ def scan_profile(hub: HubConfig, profile: str | None) -> dict[str, Any]:
     else:
         selected = [server for server in servers.values() if server.enabled]
 
+    return _scan_servers(hub, selected)
+
+
+def scan_server(hub: HubConfig, name: str) -> dict[str, Any]:
+    servers = hub.load_servers()
+    server = servers.get(name)
+    if server is None:
+        raise ValueError(f"unknown server: {name}")
+    if not server.enabled:
+        return {"results": [{"server": name, "status": "skipped", "reason": "disabled"}]}
+    return _scan_servers(hub, [server])
+
+
+def _scan_servers(hub: HubConfig, selected: list[ServerConfig]) -> dict[str, Any]:
+    servers = hub.load_servers()
     snapshots = hub.load_tool_snapshots()
     results: list[dict[str, Any]] = []
     registry_changed = False
     for server in selected:
-        if server.transport != "stdio":
-            results.append({"server": server.name, "status": "skipped", "reason": "remote transport"})
-            continue
         try:
             tools = list_tools(server, timeout=5)
         except Exception as exc:
@@ -409,14 +426,19 @@ def _record_server_event(hub: HubConfig, payload: dict[str, Any], result: dict[s
             _record_event(hub, "server_enable" if enabled else "server_disable", server=server)
 
 
-def _record_scan_event(hub: HubConfig, profile: object, result: dict[str, Any]) -> None:
+def _record_scan_event(hub: HubConfig, profile: object, result: dict[str, Any], server: str | None = None) -> None:
     results = result.get("results", [])
     if not isinstance(results, list):
         results = []
+    target: dict[str, object]
+    if server:
+        target = {"server": server}
+    else:
+        target = {"profile": str(profile or "all")}
     _record_event(
         hub,
         "scan",
-        profile=str(profile or "all"),
+        **target,
         scanned=len(results),
         changed=sum(1 for item in results if isinstance(item, dict) and item.get("changed")),
         broken=sum(1 for item in results if isinstance(item, dict) and item.get("status") == "broken"),

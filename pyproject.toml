@@ -13,6 +13,7 @@ authors = [
   { name = "Evgeny Brezhnev" }
 ]
 dependencies = [
+  "certifi>=2024.0.0",
   "PyYAML>=6.0.1"
 ]
 
