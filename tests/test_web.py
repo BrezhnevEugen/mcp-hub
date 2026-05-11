@@ -28,6 +28,10 @@ def test_ui_assets_include_documentation_section() -> None:
     assert 'id="docsDialog"' in html
     assert "const DOCS = {" in app_js
     assert "openDocsDialog" in app_js
+    assert "Hub Contract" in app_js
+    assert "GET /api/config?profile=<name>&client=<client>" in app_js
+    assert "не записывает конфиг в агентов" in app_js
+    assert "/api/state питает интерфейс" in app_js
 
 
 def test_ui_assets_use_activity_feed_instead_of_main_details() -> None:

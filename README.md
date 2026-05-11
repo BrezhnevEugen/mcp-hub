@@ -1,8 +1,8 @@
 # MCP Hub
 
-Personal registry and operations CLI for MCP servers.
+Personal hub and operations CLI for MCP servers.
 
-MCP Hub keeps a local catalog of MCP servers, stores their discovered tools/actions, groups servers into access profiles, checks whether they respond to `tools/list`, and serves client config to agents on request.
+MCP Hub keeps a local catalog of MCP servers, stores their discovered tools/actions, groups servers into access profiles, checks whether they respond to `tools/list`, and serves profile config to agents on request. The hub does not push settings into agents; the caller asks for the profile it needs.
 
 ## MVP scope
 
@@ -39,6 +39,24 @@ mcp-hub scan --profile content
 mcp-hub config codex --profile content
 mcp-hub ui
 ```
+
+## Agent config requests
+
+Agents or adapters choose a profile by calling the hub:
+
+```http
+GET http://127.0.0.1:8765/api/config?profile=content&client=codex
+```
+
+The response contains the requested `profile`, the requested `client`, and `mcpServers` for enabled servers in that profile. `profile=all` returns every enabled server.
+
+For CLI usage, the same contract is available as:
+
+```bash
+mcp-hub config codex --profile content
+```
+
+`/api/state` is for the UI and masks token-like values. `/api/config` is for agents and includes the real headers, environment values, and command arguments needed to connect.
 
 Sync existing Codex MCP servers into the local catalog:
 
