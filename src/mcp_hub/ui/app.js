@@ -1,9 +1,155 @@
 let state = null;
 let activeProfile = "all";
 let selectedServer = null;
+let activeLocale = "en";
+
+const I18N = {
+  en: {
+    add: "Add",
+    actions: "Actions",
+    allProfiles: "all profiles",
+    allProfileName: "all",
+    availableActions: "Available Actions",
+    baseline: "baseline",
+    catalog: "Catalog",
+    changed: "changed",
+    client: "Client",
+    close: "Close",
+    command: "Command",
+    delete: "Delete",
+    deleteConfirm: "Delete {server} from MCP Hub?",
+    deleted: "Deleted {server}",
+    description: "Description",
+    details: "Details",
+    disabledStatus: "disabled",
+    disable: "Disable",
+    documentTitle: "MCP Hub",
+    enabled: "Enabled",
+    enabledStatus: "enabled",
+    enable: "Enable",
+    env: "Environment",
+    export: "Export",
+    headers: "Headers",
+    importedServers: "Imported {count} server(s)",
+    import: "Import",
+    localeLabel: "Locale",
+    locale_en: "English",
+    locale_ru: "Russian",
+    manualAdd: "Manual Add",
+    mcpServers: "MCP Servers",
+    name: "Name",
+    noActionsScanned: "No actions scanned yet",
+    noDescription: "No description",
+    noServersScanned: "No servers scanned",
+    open: "Open",
+    openCard: "Open Card",
+    operations: "Operations",
+    optional: "optional",
+    path: "Path",
+    profile: "Profile",
+    profileName: "profile {profile}",
+    profiles: "Profiles",
+    refreshed: "Refreshed",
+    remoteHttp: "remote http",
+    refresh: "Refresh",
+    runScan: "Run Scan",
+    scan: "Scan",
+    scanToast: "Scan: {changed} changed, {broken} broken",
+    scanOkSummary: "{count} action(s), {marker}",
+    scanning: "Scanning...",
+    searchServers: "Search servers",
+    serverAdded: "Added {server}",
+    serverDisabled: "{server} disabled",
+    serverEnabled: "{server} enabled",
+    serverSection: "Server",
+    serverSummary: "{servers} server(s), {enabled} enabled, {profile}",
+    status: "Status",
+    stdio: "Stdio",
+    tags: "Tags",
+    target: "Target",
+    transport: "Transport",
+    unchanged: "unchanged",
+    unitSubtitle: "{transport} · {actions} action(s) · {status}",
+    url: "URL",
+    versionBadge: "v{version} · catalog v{catalog} · state v{state}",
+  },
+  ru: {
+    add: "Добавить",
+    actions: "Навыки",
+    allProfiles: "все профили",
+    allProfileName: "все",
+    availableActions: "Доступные навыки",
+    baseline: "база",
+    catalog: "Каталог",
+    changed: "изменено",
+    client: "Клиент",
+    close: "Закрыть",
+    command: "Команда",
+    delete: "Удалить",
+    deleteConfirm: "Удалить {server} из MCP Hub?",
+    deleted: "Удален {server}",
+    description: "Описание",
+    details: "Детали",
+    disabledStatus: "выключен",
+    disable: "Выключить",
+    documentTitle: "MCP Hub",
+    enabled: "Активные",
+    enabledStatus: "включен",
+    enable: "Включить",
+    env: "Окружение",
+    export: "Экспорт",
+    headers: "Заголовки",
+    importedServers: "Импортировано серверов: {count}",
+    import: "Импорт",
+    localeLabel: "Язык",
+    locale_en: "English",
+    locale_ru: "Русский",
+    manualAdd: "Ручное добавление",
+    mcpServers: "MCP-серверы",
+    name: "Имя",
+    noActionsScanned: "Навыки пока не просканированы",
+    noDescription: "Нет описания",
+    noServersScanned: "Нет просканированных серверов",
+    open: "Открыть",
+    openCard: "Открыть карточку",
+    operations: "Операции",
+    optional: "необязательно",
+    path: "Путь",
+    profile: "Профиль",
+    profileName: "профиль {profile}",
+    profiles: "Профили",
+    refreshed: "Обновлено",
+    remoteHttp: "remote http",
+    refresh: "Обновить",
+    runScan: "Запустить сканирование",
+    scan: "Сканирование",
+    scanToast: "Сканирование: изменено {changed}, ошибок {broken}",
+    scanOkSummary: "{count} навык(ов), {marker}",
+    scanning: "Сканирование...",
+    searchServers: "Поиск серверов",
+    serverAdded: "Добавлен {server}",
+    serverDisabled: "{server} выключен",
+    serverEnabled: "{server} включен",
+    serverSection: "Сервер",
+    serverSummary: "{servers} сервер(ов), включено {enabled}, {profile}",
+    status: "Статус",
+    stdio: "Stdio",
+    tags: "Теги",
+    target: "Цель",
+    transport: "Транспорт",
+    unchanged: "без изменений",
+    unitSubtitle: "{transport} · {actions} навык(ов) · {status}",
+    url: "URL",
+    versionBadge: "v{version} · каталог v{catalog} · состояние v{state}",
+  },
+};
+
+activeLocale = getInitialLocale();
 
 const el = {
+  versionBadge: document.querySelector("#versionBadge"),
   configPath: document.querySelector("#configPath"),
+  localeSelect: document.querySelector("#localeSelect"),
   serverCount: document.querySelector("#serverCount"),
   enabledCount: document.querySelector("#enabledCount"),
   stdioCount: document.querySelector("#stdioCount"),
@@ -61,6 +207,9 @@ async function api(path, options = {}) {
 
 async function loadState() {
   state = await api("/api/state");
+  if (!availableLocales().includes(activeLocale)) {
+    activeLocale = state.app?.defaultLocale || "en";
+  }
   if (!profileNames().includes(activeProfile)) {
     activeProfile = profileNames()[0] || "all";
   }
@@ -68,6 +217,39 @@ async function loadState() {
     selectedServer = state.servers[0].name;
   }
   render();
+}
+
+function getInitialLocale() {
+  const saved = safeLocalStorageGet("mcpHubLocale");
+  if (saved && I18N[saved]) return saved;
+  return "ru";
+}
+
+function safeLocalStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return "";
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    return;
+  }
+}
+
+function availableLocales() {
+  const locales = state?.app?.locales || Object.keys(I18N);
+  return locales.filter((locale) => I18N[locale]);
+}
+
+function t(key, params = {}) {
+  const dict = I18N[activeLocale] || I18N.en;
+  const template = dict[key] || I18N.en[key] || key;
+  return template.replace(/\{(\w+)\}/g, (_, name) => String(params[name] ?? ""));
 }
 
 function profileNames() {
@@ -88,6 +270,9 @@ function serversForProfile(name) {
 }
 
 function render() {
+  renderLocaleSelect();
+  applyStaticI18n();
+  renderVersionBadge();
   el.configPath.textContent = state.configDir;
   renderClientSelects();
   renderAddForm();
@@ -96,6 +281,46 @@ function render() {
   renderScanProfileSelect();
   renderServers();
   renderDetails();
+}
+
+function renderLocaleSelect() {
+  const locales = availableLocales();
+  const currentOptions = Array.from(el.localeSelect.options).map((option) => option.value);
+  if (currentOptions.join("\n") !== locales.join("\n")) {
+    el.localeSelect.innerHTML = "";
+    for (const locale of locales) {
+      const option = document.createElement("option");
+      option.value = locale;
+      el.localeSelect.append(option);
+    }
+  }
+  for (const option of el.localeSelect.options) {
+    option.textContent = t(`locale_${option.value}`);
+  }
+  el.localeSelect.value = activeLocale;
+}
+
+function applyStaticI18n() {
+  document.documentElement.lang = activeLocale;
+  document.title = t("documentTitle");
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.dataset.i18n);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-title]")) {
+    node.title = t(node.dataset.i18nTitle);
+  }
+  for (const node of document.querySelectorAll("[data-i18n-placeholder]")) {
+    node.placeholder = t(node.dataset.i18nPlaceholder);
+  }
+}
+
+function renderVersionBadge() {
+  const app = state.app || {};
+  el.versionBadge.textContent = t("versionBadge", {
+    version: app.version || "0.0.0",
+    catalog: app.catalogSchemaVersion || 1,
+    state: app.uiStateVersion || 1,
+  });
 }
 
 function renderAddForm() {
@@ -134,9 +359,11 @@ function renderProfileFilter() {
     for (const name of names) {
       const option = document.createElement("option");
       option.value = name;
-      option.textContent = `${name} (${serversForProfile(name).length})`;
       el.profileFilter.append(option);
     }
+  }
+  for (const option of el.profileFilter.options) {
+    option.textContent = `${profileDisplayName(option.value)} (${serversForProfile(option.value).length})`;
   }
   el.profileFilter.value = activeProfile;
 }
@@ -149,9 +376,11 @@ function renderScanProfileSelect() {
     for (const name of names) {
       const option = document.createElement("option");
       option.value = name;
-      option.textContent = `${name} (${serversForProfile(name).length})`;
       el.scanProfileSelect.append(option);
     }
+  }
+  for (const option of el.scanProfileSelect.options) {
+    option.textContent = `${profileDisplayName(option.value)} (${serversForProfile(option.value).length})`;
   }
   el.scanProfileSelect.value = names.includes(activeProfile) ? activeProfile : "all";
 }
@@ -163,10 +392,10 @@ function renderServers() {
     const haystack = `${server.name} ${server.transport} ${server.target} ${server.profiles.join(" ")} ${toolNames}`.toLowerCase();
     return haystack.includes(query);
   });
-  el.activeTitle.textContent = "MCP Servers";
+  el.activeTitle.textContent = t("mcpServers");
   const enabled = servers.filter((server) => server.enabled).length;
-  const profileText = activeProfile === "all" ? "all profiles" : `profile ${activeProfile}`;
-  el.summaryLine.textContent = `${servers.length} server(s), ${enabled} enabled, ${profileText}`;
+  const profileText = activeProfile === "all" ? t("allProfiles") : t("profileName", { profile: activeProfile });
+  el.summaryLine.textContent = t("serverSummary", { servers: servers.length, enabled, profile: profileText });
   el.serversTable.innerHTML = "";
   for (const server of servers) {
     const row = document.createElement("tr");
@@ -177,11 +406,11 @@ function renderServers() {
       <td><div class="target mono" title="${escapeAttr(server.target)}">${escapeHtml(server.target)}</div></td>
       <td>${server.toolCount || 0}</td>
       <td>${renderPills(server.profiles)}</td>
-      <td><span class="${server.enabled ? "state-on" : "state-off"}">${server.enabled ? "enabled" : "disabled"}</span></td>
+      <td><span class="${server.enabled ? "state-on" : "state-off"}">${t(server.enabled ? "enabledStatus" : "disabledStatus")}</span></td>
       <td>
         <div class="row-actions">
-          <button class="open-button">Open</button>
-          <button class="toggle-button">${server.enabled ? "Disable" : "Enable"}</button>
+          <button class="open-button">${t("open")}</button>
+          <button class="toggle-button">${t(server.enabled ? "disable" : "enable")}</button>
         </div>
       </td>
     `;
@@ -195,7 +424,7 @@ function renderServers() {
         method: "POST",
         body: JSON.stringify({ name: server.name, enabled: !server.enabled }),
       });
-      showToast(`${server.name} ${server.enabled ? "disabled" : "enabled"}`);
+      showToast(t(server.enabled ? "serverDisabled" : "serverEnabled", { server: server.name }));
       await loadState();
     });
     row.querySelector(".open-button").addEventListener("click", () => {
@@ -218,25 +447,25 @@ function renderDetails() {
   el.deleteBtn.disabled = false;
   el.openUnitBtn.disabled = false;
   const items = [
-    ["Name", server.name],
-    ["Transport", server.transport],
-    ["Target", server.target],
-    ["Profiles", server.profiles.join(", ") || "-"],
-    ["Tags", server.tags.join(", ") || "-"],
-    ["Actions", String(server.toolCount || 0)],
-    ["Env", formatMap(server.env, server.envKeys)],
-    ["Headers", formatMap(server.headers, server.headerKeys)],
-    ["Description", server.description || "-"],
+    ["name", server.name],
+    ["transport", server.transport],
+    ["target", server.target],
+    ["profiles", server.profiles.join(", ") || "-"],
+    ["tags", server.tags.join(", ") || "-"],
+    ["actions", String(server.toolCount || 0)],
+    ["env", formatMap(server.env, server.envKeys)],
+    ["headers", formatMap(server.headers, server.headerKeys)],
+    ["description", server.description || "-"],
   ];
   const toolList = renderToolList(server.tools || []);
   el.detailsBody.innerHTML = items.map(([label, value]) => `
     <div class="detail-item">
-      <div class="detail-label">${escapeHtml(label)}</div>
+      <div class="detail-label">${escapeHtml(t(label))}</div>
       <div class="detail-value mono">${escapeHtml(value)}</div>
     </div>
   `).join("") + `
     <div class="detail-item full-span">
-      <div class="detail-label">Available Actions</div>
+      <div class="detail-label">${escapeHtml(t("availableActions"))}</div>
       ${toolList}
     </div>
   `;
@@ -249,14 +478,14 @@ function renderPills(values) {
 
 function renderToolList(tools) {
   if (!tools.length) {
-    return `<div class="empty-actions">No actions scanned yet</div>`;
+    return `<div class="empty-actions">${escapeHtml(t("noActionsScanned"))}</div>`;
   }
   return `
     <div class="tool-list">
       ${tools.map((tool) => `
         <div class="tool-item">
           <div class="tool-name mono">${escapeHtml(tool.name)}</div>
-          <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
+          <div class="tool-description">${escapeHtml(tool.description || t("noDescription"))}</div>
         </div>
       `).join("")}
     </div>
@@ -273,36 +502,40 @@ function openUnitCard(name = selectedServer) {
 
 function renderUnitCard(server) {
   el.unitTitle.textContent = server.name;
-  el.unitSubtitle.textContent = `${server.transport} · ${server.toolCount || 0} action(s) · ${server.enabled ? "enabled" : "disabled"}`;
+  el.unitSubtitle.textContent = t("unitSubtitle", {
+    transport: server.transport,
+    actions: server.toolCount || 0,
+    status: t(server.enabled ? "enabledStatus" : "disabledStatus"),
+  });
   const fields = [
-    ["Target", server.target || "-"],
-    ["Profiles", server.profiles.join(", ") || "-"],
-    ["Tags", server.tags.join(", ") || "-"],
-    ["Env", formatMap(server.env, server.envKeys)],
-    ["Headers", formatMap(server.headers, server.headerKeys)],
-    ["Description", server.description || "-"],
+    ["target", server.target || "-"],
+    ["profiles", server.profiles.join(", ") || "-"],
+    ["tags", server.tags.join(", ") || "-"],
+    ["env", formatMap(server.env, server.envKeys)],
+    ["headers", formatMap(server.headers, server.headerKeys)],
+    ["description", server.description || "-"],
   ];
   if (server.command && server.command !== server.target) {
-    fields.splice(1, 0, ["Command", server.command]);
+    fields.splice(1, 0, ["command", server.command]);
   }
   if (server.url && server.url !== server.target) {
-    fields.splice(1, 0, ["URL", server.url]);
+    fields.splice(1, 0, ["url", server.url]);
   }
-  const wideLabels = new Set(["Target", "Command", "URL", "Description"]);
+  const wideLabels = new Set(["target", "command", "url", "description"]);
   el.unitCardBody.innerHTML = `
     <section class="unit-section compact-section">
-      <h3>Server</h3>
+      <h3>${escapeHtml(t("serverSection"))}</h3>
       <div class="unit-info-grid">
         ${fields.map(([label, value]) => `
           <div class="unit-info-row ${wideLabels.has(label) ? "wide" : ""}">
-            <div class="unit-info-label">${escapeHtml(label)}</div>
+            <div class="unit-info-label">${escapeHtml(t(label))}</div>
             <div class="unit-info-value mono">${escapeHtml(value)}</div>
           </div>
         `).join("")}
       </div>
     </section>
     <section class="unit-section">
-      <h3>Actions</h3>
+      <h3>${escapeHtml(t("actions"))}</h3>
       ${renderUnitTools(server.tools || [])}
     </section>
   `;
@@ -310,14 +543,14 @@ function renderUnitCard(server) {
 
 function renderUnitTools(tools) {
   if (!tools.length) {
-    return `<div class="empty-actions">No actions scanned yet</div>`;
+    return `<div class="empty-actions">${escapeHtml(t("noActionsScanned"))}</div>`;
   }
   return `
     <div class="unit-tool-list">
       ${tools.map((tool) => `
         <article class="unit-tool">
           <div class="tool-name mono">${escapeHtml(tool.name)}</div>
-          <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
+          <div class="tool-description">${escapeHtml(tool.description || t("noDescription"))}</div>
         </article>
       `).join("")}
     </div>
@@ -345,7 +578,7 @@ async function importServers() {
     body: JSON.stringify(payload),
   });
   el.importDialog.close();
-  showToast(`Imported ${result.imported.length} server(s)`);
+  showToast(t("importedServers", { count: result.imported.length }));
   await loadState();
 }
 
@@ -371,7 +604,7 @@ async function addServer() {
   activeProfile = payload.profile || "all";
   clearAddForm();
   el.addDialog.close();
-  showToast(`Added ${result.server}`);
+  showToast(t("serverAdded", { server: result.server }));
   await loadState();
 }
 
@@ -385,12 +618,12 @@ function clearAddForm() {
 async function deleteSelectedServer() {
   const server = state.servers.find((item) => item.name === selectedServer);
   if (!server) return;
-  if (!confirm(`Delete ${server.name} from MCP Hub?`)) return;
+  if (!confirm(t("deleteConfirm", { server: server.name }))) return;
   await api("/api/server", {
     method: "POST",
     body: JSON.stringify({ action: "delete", name: server.name }),
   });
-  showToast(`Deleted ${server.name}`);
+  showToast(t("deleted", { server: server.name }));
   selectedServer = serversForProfile(activeProfile).find((item) => item.name !== server.name)?.name || null;
   await loadState();
 }
@@ -407,7 +640,7 @@ async function exportProfile() {
 
 async function scanProfile() {
   const profile = el.scanProfileSelect.value || activeProfile;
-  el.scanResult.innerHTML = `<div class="empty-actions">Scanning...</div>`;
+  el.scanResult.innerHTML = `<div class="empty-actions">${escapeHtml(t("scanning"))}</div>`;
   const result = await api("/api/scan", {
     method: "POST",
     body: JSON.stringify({ profile: profile === "all" ? null : profile }),
@@ -415,13 +648,13 @@ async function scanProfile() {
   const broken = result.results.filter((item) => item.status === "broken").length;
   const changed = result.results.filter((item) => item.changed).length;
   renderScanResults(result.results);
-  showToast(`Scan: ${changed} changed, ${broken} broken`);
+  showToast(t("scanToast", { changed, broken }));
   await loadState();
 }
 
 function renderScanResults(results) {
   if (!results.length) {
-    el.scanResult.innerHTML = `<div class="empty-actions">No servers scanned</div>`;
+    el.scanResult.innerHTML = `<div class="empty-actions">${escapeHtml(t("noServersScanned"))}</div>`;
     return;
   }
   el.scanResult.innerHTML = `
@@ -441,8 +674,8 @@ function renderScanResults(results) {
 
 function scanResultSummary(item) {
   if (item.status === "ok") {
-    const marker = item.firstScan ? "baseline" : item.changed ? "changed" : "unchanged";
-    return `${item.toolCount} action(s), ${marker}`;
+    const marker = item.firstScan ? t("baseline") : item.changed ? t("changed") : t("unchanged");
+    return t("scanOkSummary", { count: item.toolCount, marker });
   }
   return item.error || item.reason || "-";
 }
@@ -467,7 +700,16 @@ function escapeAttr(value) {
   return escapeHtml(value).replaceAll("\n", " ");
 }
 
-el.refreshBtn.addEventListener("click", () => loadState().then(() => showToast("Refreshed")).catch((error) => showToast(error.message)));
+function profileDisplayName(name) {
+  return name === "all" ? t("allProfileName") : name;
+}
+
+el.localeSelect.addEventListener("change", () => {
+  activeLocale = el.localeSelect.value;
+  safeLocalStorageSet("mcpHubLocale", activeLocale);
+  render();
+});
+el.refreshBtn.addEventListener("click", () => loadState().then(() => showToast(t("refreshed"))).catch((error) => showToast(error.message)));
 function openAddDialog() {
   el.addDialog.showModal();
   el.addName.focus();

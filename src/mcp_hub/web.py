@@ -9,6 +9,7 @@ import shlex
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+from . import __version__
 from .config import HubConfig
 from .importers import (
     DEFAULT_CLAUDE_DESKTOP_CONFIG,
@@ -21,6 +22,10 @@ from .importers import (
 from .mcp_client import list_tools, tools_to_mappings
 from .models import ServerConfig
 from .scanner import compare_tools
+
+CATALOG_SCHEMA_VERSION = 1
+UI_STATE_VERSION = 1
+SUPPORTED_LOCALES = ["en", "ru"]
 
 
 def serve_ui(hub: HubConfig, host: str = "127.0.0.1", port: int = 8765) -> None:
@@ -118,6 +123,14 @@ def build_state(hub: HubConfig) -> dict[str, Any]:
                 server_profiles[server_name].append(profile_name)
 
     return {
+        "app": {
+            "name": "MCP Hub",
+            "version": __version__,
+            "catalogSchemaVersion": CATALOG_SCHEMA_VERSION,
+            "uiStateVersion": UI_STATE_VERSION,
+            "locales": SUPPORTED_LOCALES,
+            "defaultLocale": "ru",
+        },
         "configDir": str(hub.config_dir),
         "registryPath": str(hub.registry_path),
         "profilesPath": str(hub.profiles_path),

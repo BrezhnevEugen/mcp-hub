@@ -10,11 +10,18 @@
     <div class="app-shell">
       <header class="topbar">
         <div>
-          <h1>MCP Hub</h1>
+          <div class="brand-row">
+            <h1>MCP Hub</h1>
+            <span id="versionBadge" class="version-badge">v0.1.0</span>
+          </div>
           <div id="configPath" class="subtle"></div>
         </div>
         <div class="top-actions">
-          <button id="refreshBtn" class="icon-button" title="Refresh">R</button>
+          <label class="locale-field">
+            <span data-i18n="localeLabel">Locale</span>
+            <select id="localeSelect" aria-label="Locale"></select>
+          </label>
+          <button id="refreshBtn" class="icon-button" title="Refresh" data-i18n-title="refresh">R</button>
         </div>
       </header>
 
@@ -22,46 +29,46 @@
         <aside class="sidebar">
           <section class="panel">
             <div class="panel-head">
-              <h2>Catalog</h2>
+              <h2 data-i18n="catalog">Catalog</h2>
             </div>
             <div class="stats-grid">
               <div class="stat">
                 <div id="serverCount" class="stat-value">0</div>
-                <div class="stat-label">Servers</div>
+                <div class="stat-label" data-i18n="servers">Servers</div>
               </div>
               <div class="stat">
                 <div id="enabledCount" class="stat-value">0</div>
-                <div class="stat-label">Enabled</div>
+                <div class="stat-label" data-i18n="enabled">Enabled</div>
               </div>
               <div class="stat">
                 <div id="stdioCount" class="stat-value">0</div>
-                <div class="stat-label">Stdio</div>
+                <div class="stat-label" data-i18n="stdio">Stdio</div>
               </div>
               <div class="stat">
                 <div id="remoteCount" class="stat-value">0</div>
-                <div class="stat-label">Actions</div>
+                <div class="stat-label" data-i18n="actions">Actions</div>
               </div>
             </div>
           </section>
 
           <section class="panel">
             <div class="panel-head">
-              <h2>Operations</h2>
+              <h2 data-i18n="operations">Operations</h2>
             </div>
             <div class="operation-list">
-              <button id="sideAddOpenBtn" class="wide-button primary-button">Manual Add</button>
-              <button id="sideImportOpenBtn" class="wide-button">Import</button>
-              <button id="sideScanOpenBtn" class="wide-button">Scan</button>
+              <button id="sideAddOpenBtn" class="wide-button primary-button" data-i18n="manualAdd">Manual Add</button>
+              <button id="sideImportOpenBtn" class="wide-button" data-i18n="import">Import</button>
+              <button id="sideScanOpenBtn" class="wide-button" data-i18n="scan">Scan</button>
             </div>
           </section>
 
           <section class="panel">
             <div class="panel-head">
-              <h2>Export</h2>
+              <h2 data-i18n="export">Export</h2>
             </div>
-            <label class="field-label" for="exportClient">Client</label>
+            <label class="field-label" for="exportClient" data-i18n="client">Client</label>
             <select id="exportClient"></select>
-            <button id="exportBtn" class="wide-button">Export</button>
+            <button id="exportBtn" class="wide-button" data-i18n="export">Export</button>
           </section>
         </aside>
 
@@ -73,10 +80,10 @@
             </div>
             <div class="toolbar">
               <label class="inline-field">
-                <span>Profile</span>
+                <span data-i18n="profile">Profile</span>
                 <select id="profileFilter"></select>
               </label>
-              <input id="searchBox" class="search" type="search" placeholder="Search servers">
+              <input id="searchBox" class="search" type="search" placeholder="Search servers" data-i18n-placeholder="searchServers">
             </div>
           </div>
 
@@ -84,12 +91,12 @@
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Transport</th>
-                  <th>Target</th>
-                  <th>Actions</th>
-                  <th>Profiles</th>
-                  <th>Status</th>
+                  <th data-i18n="name">Name</th>
+                  <th data-i18n="transport">Transport</th>
+                  <th data-i18n="target">Target</th>
+                  <th data-i18n="actions">Actions</th>
+                  <th data-i18n="profiles">Profiles</th>
+                  <th data-i18n="status">Status</th>
                   <th></th>
                 </tr>
               </thead>
@@ -99,10 +106,10 @@
 
           <section class="details">
             <div class="panel-head">
-              <h2>Details</h2>
+              <h2 data-i18n="details">Details</h2>
               <div class="details-actions">
-                <button id="openUnitBtn">Open Card</button>
-                <button id="deleteBtn" class="danger-button">Delete</button>
+                <button id="openUnitBtn" data-i18n="openCard">Open Card</button>
+                <button id="deleteBtn" class="danger-button" data-i18n="delete">Delete</button>
               </div>
             </div>
             <div id="detailsBody" class="details-body"></div>
@@ -114,26 +121,26 @@
     <dialog id="addDialog" class="operation-dialog">
       <form method="dialog">
         <div class="dialog-head">
-          <h2>Manual Add</h2>
-          <button class="icon-button" value="cancel" title="Close">X</button>
+          <h2 data-i18n="manualAdd">Manual Add</h2>
+          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
         </div>
         <div class="operation-card">
-          <label class="field-label" for="addName">Name</label>
+          <label class="field-label" for="addName" data-i18n="name">Name</label>
           <input id="addName" type="text" placeholder="server-name">
-          <label class="field-label" for="addTransport">Transport</label>
+          <label class="field-label" for="addTransport" data-i18n="transport">Transport</label>
           <select id="addTransport">
             <option value="stdio">stdio</option>
-            <option value="http">remote http</option>
+            <option value="http" data-i18n="remoteHttp">remote http</option>
           </select>
-          <label class="field-label" for="addCommand">Command</label>
+          <label class="field-label" for="addCommand" data-i18n="command">Command</label>
           <input id="addCommand" type="text" placeholder="python3 -m package.server">
-          <label class="field-label" for="addUrl">URL</label>
+          <label class="field-label" for="addUrl" data-i18n="url">URL</label>
           <input id="addUrl" type="text" placeholder="https://example.com/mcp">
-          <label class="field-label" for="addProfile">Profile</label>
+          <label class="field-label" for="addProfile" data-i18n="profile">Profile</label>
           <input id="addProfile" type="text" value="default">
-          <label class="field-label" for="addTags">Tags</label>
+          <label class="field-label" for="addTags" data-i18n="tags">Tags</label>
           <input id="addTags" type="text" placeholder="local, tools">
-          <button id="addBtn" class="wide-button primary-button" type="button">Add</button>
+          <button id="addBtn" class="wide-button primary-button" type="button" data-i18n="add">Add</button>
         </div>
       </form>
     </dialog>
@@ -141,15 +148,15 @@
     <dialog id="importDialog" class="operation-dialog">
       <form method="dialog">
         <div class="dialog-head">
-          <h2>Import</h2>
-          <button class="icon-button" value="cancel" title="Close">X</button>
+          <h2 data-i18n="import">Import</h2>
+          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
         </div>
         <div class="operation-card">
-          <label class="field-label" for="importClient">Client</label>
+          <label class="field-label" for="importClient" data-i18n="client">Client</label>
           <select id="importClient"></select>
-          <label class="field-label" for="importPath">Path</label>
-          <input id="importPath" type="text" placeholder="optional">
-          <button id="importBtn" class="wide-button primary-button" type="button">Import</button>
+          <label class="field-label" for="importPath" data-i18n="path">Path</label>
+          <input id="importPath" type="text" placeholder="optional" data-i18n-placeholder="optional">
+          <button id="importBtn" class="wide-button primary-button" type="button" data-i18n="import">Import</button>
         </div>
       </form>
     </dialog>
@@ -157,13 +164,13 @@
     <dialog id="scanDialog" class="operation-dialog">
       <form method="dialog">
         <div class="dialog-head">
-          <h2>Scan</h2>
-          <button class="icon-button" value="cancel" title="Close">X</button>
+          <h2 data-i18n="scan">Scan</h2>
+          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
         </div>
         <div class="operation-card">
-          <label class="field-label" for="scanProfileSelect">Profile</label>
+          <label class="field-label" for="scanProfileSelect" data-i18n="profile">Profile</label>
           <select id="scanProfileSelect"></select>
-          <button id="scanRunBtn" class="wide-button primary-button" type="button">Run Scan</button>
+          <button id="scanRunBtn" class="wide-button primary-button" type="button" data-i18n="runScan">Run Scan</button>
           <div id="scanResult" class="scan-result"></div>
         </div>
       </form>
@@ -172,8 +179,8 @@
     <dialog id="exportDialog">
       <form method="dialog">
         <div class="dialog-head">
-          <h2>Export</h2>
-          <button class="icon-button" value="cancel" title="Close">X</button>
+          <h2 data-i18n="export">Export</h2>
+          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
         </div>
         <pre id="exportOutput"></pre>
       </form>
@@ -186,7 +193,7 @@
             <h2 id="unitTitle">MCP Unit</h2>
             <div id="unitSubtitle" class="subtle"></div>
           </div>
-          <button class="icon-button" value="cancel" title="Close">X</button>
+          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
         </div>
         <div id="unitCardBody" class="unit-card-body"></div>
       </form>

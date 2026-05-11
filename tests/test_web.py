@@ -17,6 +17,22 @@ def test_build_state_adds_profile_membership(tmp_path: Path) -> None:
     assert state["servers"][0]["profiles"] == ["default"]
 
 
+def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.init()
+
+    state = build_state(hub)
+
+    assert state["app"] == {
+        "name": "MCP Hub",
+        "version": "0.1.0",
+        "catalogSchemaVersion": 1,
+        "uiStateVersion": 1,
+        "locales": ["en", "ru"],
+        "defaultLocale": "ru",
+    }
+
+
 def test_build_state_includes_server_tools(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.save_servers(
