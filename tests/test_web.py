@@ -6,6 +6,7 @@ from mcp_hub.config import HubConfig
 from mcp_hub.mcp_client import ToolInfo
 from mcp_hub.models import ServerConfig
 from mcp_hub.web import build_state, create_server, delete_server, get_profile_config, scan_profile, scan_server
+from mcp_hub.web import update_profile
 from mcp_hub.web import import_client
 
 
@@ -70,6 +71,19 @@ def test_ui_assets_request_config_instead_of_exporting() -> None:
     assert "/api/export?" not in app_js
 
 
+def test_ui_assets_allow_assigning_existing_server_to_profiles() -> None:
+    ui_files = resources.files("mcp_hub").joinpath("ui")
+    app_js = ui_files.joinpath("app.js").read_text(encoding="utf-8")
+    css = ui_files.joinpath("styles.css").read_text(encoding="utf-8")
+
+    assert "assignProfiles" in app_js
+    assert "profile-toggle" in app_js
+    assert "addServerToProfile" in app_js
+    assert "updateServerProfileMembership" in app_js
+    assert 'api("/api/profile"' in app_js
+    assert ".profile-add-row" in css
+
+
 def test_ui_manual_add_form_keeps_only_name_address_and_token() -> None:
     ui_files = resources.files("mcp_hub").joinpath("ui")
     html = ui_files.joinpath("index.html").read_text(encoding="utf-8")
@@ -85,6 +99,17 @@ def test_ui_manual_add_form_keeps_only_name_address_and_token() -> None:
     assert 'transport: "http"' in app_js
     assert "authorizationHeader" in app_js
     assert 'JSON.stringify({ server: result.server })' in app_js
+
+
+def test_update_profile_can_attach_existing_server(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.save_servers({"demo": ServerConfig(name="demo", command=["demo"])})
+    hub.save_profiles({"default": []})
+
+    result = update_profile(hub, {"name": "default", "servers": ["demo"]})
+
+    assert result == {"profile": "default", "servers": ["demo"]}
+    assert hub.load_profiles()["default"] == ["demo"]
 
 
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:

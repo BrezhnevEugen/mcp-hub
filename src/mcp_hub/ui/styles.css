@@ -674,6 +674,42 @@ dialog::backdrop {
   word-break: break-word;
 }
 
+.profile-assignment {
+  display: grid;
+  gap: 10px;
+}
+
+.profile-control-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.profile-check {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  color: var(--text);
+}
+
+.profile-check input {
+  width: auto;
+  min-height: auto;
+  margin: 0;
+}
+
+.profile-add-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
 .unit-tool-list {
   display: grid;
   gap: 10px;
@@ -751,6 +787,10 @@ pre {
 
   .unit-info-row {
     grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .profile-add-row {
+    grid-template-columns: 1fr;
   }
 
 }

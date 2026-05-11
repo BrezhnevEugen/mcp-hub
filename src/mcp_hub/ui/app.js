@@ -6,6 +6,7 @@ let activeLocale = "en";
 const I18N = {
   en: {
     add: "Add",
+    addToProfile: "Add to Profile",
     address: "Address",
     addressPlaceholder: "https://example.com/mcp",
     addressRequired: "Address is required",
@@ -15,6 +16,8 @@ const I18N = {
     activitySubtitle: "Latest registry, scan, config, and server events.",
     allProfiles: "all profiles",
     allProfileName: "all",
+    allProfileReserved: "The all profile is reserved",
+    assignProfiles: "Assign Profiles",
     availableActions: "Available Actions",
     baseline: "baseline",
     catalog: "Catalog",
@@ -62,6 +65,7 @@ const I18N = {
     noActionsScanned: "No actions scanned yet",
     noDescription: "No description",
     noEvents: "No events yet",
+    noProfilesConfigured: "No profiles configured yet",
     noServersScanned: "No servers scanned",
     open: "Open",
     openCard: "Open Card",
@@ -70,8 +74,13 @@ const I18N = {
     optional: "optional",
     path: "Path",
     profile: "Profile",
+    profileAttached: "Added {server} to {profile}",
+    profileCreated: "Created {profile} and added {server}",
+    profileDetached: "Removed {server} from {profile}",
+    profileNameRequired: "Profile name is required",
     profileName: "profile {profile}",
     profiles: "Profiles",
+    profileNamePlaceholder: "profile-name",
     progressSummary: "Progress Summary",
     progressSubtitle: "Operational state: stats, done, and remaining work.",
     refreshed: "Refreshed",
@@ -125,6 +134,7 @@ const I18N = {
   },
   ru: {
     add: "Добавить",
+    addToProfile: "Добавить в профиль",
     address: "Адрес",
     addressPlaceholder: "https://example.com/mcp",
     addressRequired: "Адрес обязателен",
@@ -134,6 +144,8 @@ const I18N = {
     activitySubtitle: "Последние события реестра, сканирования, настроек и серверов.",
     allProfiles: "все профили",
     allProfileName: "все",
+    allProfileReserved: "Профиль all зарезервирован",
+    assignProfiles: "Привязка к профилям",
     availableActions: "Доступные навыки",
     baseline: "база",
     catalog: "Каталог",
@@ -181,6 +193,7 @@ const I18N = {
     noActionsScanned: "Навыки пока не просканированы",
     noDescription: "Нет описания",
     noEvents: "Событий пока нет",
+    noProfilesConfigured: "Профили пока не настроены",
     noServersScanned: "Нет просканированных серверов",
     open: "Открыть",
     openCard: "Открыть карточку",
@@ -189,8 +202,13 @@ const I18N = {
     optional: "необязательно",
     path: "Путь",
     profile: "Профиль",
+    profileAttached: "{server} добавлен в {profile}",
+    profileCreated: "Создан {profile}, {server} добавлен",
+    profileDetached: "{server} удален из {profile}",
+    profileNameRequired: "Имя профиля обязательно",
     profileName: "профиль {profile}",
     profiles: "Профили",
+    profileNamePlaceholder: "имя-профиля",
     progressSummary: "Сводка",
     progressSubtitle: "Операционное состояние: статистика, сделано и что осталось.",
     refreshed: "Обновлено",
@@ -471,6 +489,10 @@ function profileNames() {
     names.push("all");
   }
   return names;
+}
+
+function realProfileNames() {
+  return state ? state.profiles.map((profile) => profile.name).filter((name) => name !== "all") : [];
 }
 
 function serversForProfile(name) {
@@ -809,7 +831,6 @@ function renderUnitCard(server) {
   });
   const fields = [
     ["target", server.target || "-"],
-    ["profiles", server.profiles.join(", ") || "-"],
     ["tags", server.tags.join(", ") || "-"],
     ["env", formatMap(server.env, server.envKeys)],
     ["headers", formatMap(server.headers, server.headerKeys)],
@@ -835,10 +856,57 @@ function renderUnitCard(server) {
       </div>
     </section>
     <section class="unit-section">
+      <h3>${escapeHtml(t("assignProfiles"))}</h3>
+      ${renderProfileAssignment(server)}
+    </section>
+    <section class="unit-section">
       <h3>${escapeHtml(t("actions"))}</h3>
       ${renderUnitTools(server.tools || [])}
     </section>
   `;
+  bindProfileControls(server);
+}
+
+function renderProfileAssignment(server) {
+  const profileSet = new Set(server.profiles || []);
+  const profiles = realProfileNames();
+  const profileControls = profiles.length
+    ? profiles.map((profile) => `
+      <label class="profile-check">
+        <input class="profile-toggle" type="checkbox" data-profile="${escapeAttr(profile)}" ${profileSet.has(profile) ? "checked" : ""}>
+        <span>${escapeHtml(profile)}</span>
+      </label>
+    `).join("")
+    : `<div class="empty-actions">${escapeHtml(t("noProfilesConfigured"))}</div>`;
+  return `
+    <div class="profile-assignment">
+      <div class="profile-control-list">${profileControls}</div>
+      <div class="profile-add-row">
+        <input id="profileNameInput" type="text" placeholder="${escapeAttr(t("profileNamePlaceholder"))}">
+        <button id="profileAddBtn" type="button">${escapeHtml(t("addToProfile"))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function bindProfileControls(server) {
+  for (const input of el.unitCardBody.querySelectorAll(".profile-toggle")) {
+    input.addEventListener("change", () => {
+      updateServerProfileMembership(server.name, input.dataset.profile, input.checked).catch((error) => {
+        input.checked = !input.checked;
+        showToast(error.message);
+      });
+    });
+  }
+  const profileInput = el.unitCardBody.querySelector("#profileNameInput");
+  const addButton = el.unitCardBody.querySelector("#profileAddBtn");
+  const addCurrentServer = () => addServerToProfile(server.name, profileInput?.value || "").catch((error) => showToast(error.message));
+  addButton?.addEventListener("click", addCurrentServer);
+  profileInput?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    addCurrentServer();
+  });
 }
 
 function renderUnitTools(tools) {
@@ -865,6 +933,66 @@ function formatMap(values, fallbackKeys = []) {
       .join("\n");
   }
   return fallbackKeys && fallbackKeys.length ? fallbackKeys.join(", ") : "-";
+}
+
+async function updateServerProfileMembership(serverName, profileName, shouldInclude) {
+  if (!profileName) return;
+  const profile = state.profiles.find((item) => item.name === profileName);
+  if (!profile) {
+    throw new Error(`unknown profile: ${profileName}`);
+  }
+  const current = profile.servers || [];
+  const nextServers = shouldInclude
+    ? uniqueValues([...current, serverName])
+    : current.filter((name) => name !== serverName);
+  if (current.join("\n") === nextServers.join("\n")) {
+    return;
+  }
+  await saveProfile(profileName, nextServers);
+  showToast(t(shouldInclude ? "profileAttached" : "profileDetached", { server: serverName, profile: profileName }));
+  await loadState();
+  refreshOpenUnitCard(serverName);
+}
+
+async function addServerToProfile(serverName, rawProfileName) {
+  const profileName = normalizeProfileName(rawProfileName);
+  const profile = state.profiles.find((item) => item.name === profileName);
+  const current = profile?.servers || [];
+  const nextServers = uniqueValues([...current, serverName]);
+  await saveProfile(profileName, nextServers);
+  showToast(t(profile ? "profileAttached" : "profileCreated", { server: serverName, profile: profileName }));
+  await loadState();
+  refreshOpenUnitCard(serverName);
+}
+
+function normalizeProfileName(value) {
+  const profileName = String(value || "").trim();
+  if (!profileName) {
+    throw new Error(t("profileNameRequired"));
+  }
+  if (profileName.toLowerCase() === "all") {
+    throw new Error(t("allProfileReserved"));
+  }
+  return profileName;
+}
+
+function saveProfile(name, servers) {
+  return api("/api/profile", {
+    method: "POST",
+    body: JSON.stringify({ name, servers }),
+  });
+}
+
+function refreshOpenUnitCard(serverName) {
+  if (!el.unitDialog.open) return;
+  const server = state.servers.find((item) => item.name === serverName);
+  if (server) {
+    renderUnitCard(server);
+  }
+}
+
+function uniqueValues(values) {
+  return Array.from(new Set(values));
 }
 
 async function importServers() {
