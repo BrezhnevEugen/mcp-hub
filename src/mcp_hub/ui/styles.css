@@ -496,29 +496,6 @@ dialog::backdrop {
   padding: 10px;
 }
 
-.unit-tool-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.schema-state {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  background: #f8fafc;
-  font-size: 12px;
-  padding: 2px 7px;
-  white-space: nowrap;
-}
-
-.schema-block {
-  max-height: 280px;
-  margin: 10px 0 0;
-  background: #101820;
-}
-
 pre {
   max-height: 62vh;
   overflow: auto;
@@ -568,7 +545,4 @@ pre {
     grid-template-columns: 1fr;
   }
 
-  .unit-tool-head {
-    display: grid;
-  }
 }

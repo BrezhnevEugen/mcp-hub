@@ -346,8 +346,6 @@ def _server_payload(server: ServerConfig, profiles: list[str]) -> dict[str, Any]
             {
                 "name": tool["name"],
                 "description": str(tool.get("description", "")),
-                "hasInputSchema": isinstance(tool.get("inputSchema"), dict),
-                **({"inputSchema": tool["inputSchema"]} if isinstance(tool.get("inputSchema"), dict) else {}),
             }
             for tool in server.tools
         ],

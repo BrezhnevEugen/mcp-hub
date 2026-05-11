@@ -43,8 +43,6 @@ def test_build_state_includes_server_tools(tmp_path: Path) -> None:
         {
             "name": "search",
             "description": "Search records",
-            "hasInputSchema": True,
-            "inputSchema": {"type": "object"},
         }
     ]
 

@@ -314,14 +314,8 @@ function renderUnitTools(tools) {
     <div class="unit-tool-list">
       ${tools.map((tool) => `
         <article class="unit-tool">
-          <div class="unit-tool-head">
-            <div>
-              <div class="tool-name mono">${escapeHtml(tool.name)}</div>
-              <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
-            </div>
-            <span class="schema-state">${tool.inputSchema ? "schema" : "no schema"}</span>
-          </div>
-          ${tool.inputSchema ? `<pre class="schema-block">${escapeHtml(JSON.stringify(tool.inputSchema, null, 2))}</pre>` : ""}
+          <div class="tool-name mono">${escapeHtml(tool.name)}</div>
+          <div class="tool-description">${escapeHtml(tool.description || "No description")}</div>
         </article>
       `).join("")}
     </div>
