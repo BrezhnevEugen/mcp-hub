@@ -83,3 +83,18 @@ def test_server_tools_roundtrip(tmp_path: Path) -> None:
             "inputSchema": {"type": "object"},
         }
     ]
+
+
+def test_events_roundtrip_returns_newest_first(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+
+    hub.append_event({"ts": "2026-05-11T10:00:00Z", "kind": "import", "count": 1})
+    hub.append_event({"ts": "2026-05-11T10:01:00Z", "kind": "scan", "scanned": 2})
+
+    assert hub.load_events() == [
+        {"ts": "2026-05-11T10:01:00Z", "kind": "scan", "scanned": 2},
+        {"ts": "2026-05-11T10:00:00Z", "kind": "import", "count": 1},
+    ]
+    assert hub.load_events(limit=1) == [
+        {"ts": "2026-05-11T10:01:00Z", "kind": "scan", "scanned": 2}
+    ]

@@ -114,15 +114,14 @@
             </table>
           </div>
 
-          <section class="details">
+          <section class="activity">
             <div class="panel-head">
-              <h2 data-i18n="details">Details</h2>
-              <div class="details-actions">
-                <button id="openUnitBtn" data-i18n="openCard">Open Card</button>
-                <button id="deleteBtn" class="danger-button" data-i18n="delete">Delete</button>
+              <div>
+                <h2 data-i18n="activityFeed">Activity Feed</h2>
+                <div class="subtle" data-i18n="activitySubtitle">Latest registry, scan, export, and server events.</div>
               </div>
             </div>
-            <div id="detailsBody" class="details-body"></div>
+            <div id="activityFeed" class="activity-feed"></div>
           </section>
         </section>
       </main>
@@ -216,7 +215,10 @@
             <h2 id="unitTitle">MCP Unit</h2>
             <div id="unitSubtitle" class="subtle"></div>
           </div>
-          <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
+          <div class="dialog-actions">
+            <button id="unitDeleteBtn" class="danger-button" type="button" data-i18n="delete">Delete</button>
+            <button class="icon-button" value="cancel" title="Close" data-i18n-title="close">X</button>
+          </div>
         </div>
         <div id="unitCardBody" class="unit-card-body"></div>
       </form>

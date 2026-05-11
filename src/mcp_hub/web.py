@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib import resources
@@ -24,7 +25,7 @@ from .models import ServerConfig
 from .scanner import compare_tools
 
 CATALOG_SCHEMA_VERSION = 1
-UI_STATE_VERSION = 1
+UI_STATE_VERSION = 2
 SUPPORTED_LOCALES = ["en", "ru"]
 
 
@@ -63,7 +64,15 @@ class MCPHubHandler(BaseHTTPRequestHandler):
                 params = parse_qs(parsed.query)
                 profile = _single(params, "profile", "default")
                 client = _single(params, "client", "codex")
-                self._send_json(export_profile(self.config, profile, client))
+                payload = export_profile(self.config, profile, client)
+                _record_event(
+                    self.config,
+                    "export",
+                    client=client,
+                    profile=profile,
+                    serverCount=len(payload.get("mcpServers", {})),
+                )
+                self._send_json(payload)
             else:
                 self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
         except Exception as exc:
@@ -74,13 +83,32 @@ class MCPHubHandler(BaseHTTPRequestHandler):
         try:
             payload = self._read_json()
             if parsed.path == "/api/import":
-                self._send_json(import_client(self.config, payload))
+                result = import_client(self.config, payload)
+                _record_event(
+                    self.config,
+                    "import",
+                    client=str(payload.get("client", "")),
+                    count=len(result["imported"]),
+                    servers=result["imported"],
+                )
+                self._send_json(result)
             elif parsed.path == "/api/server":
-                self._send_json(update_server(self.config, payload))
+                result = update_server(self.config, payload)
+                _record_server_event(self.config, payload, result)
+                self._send_json(result)
             elif parsed.path == "/api/profile":
-                self._send_json(update_profile(self.config, payload))
+                result = update_profile(self.config, payload)
+                _record_event(
+                    self.config,
+                    "profile_update",
+                    profile=result["profile"],
+                    serverCount=len(result["servers"]),
+                )
+                self._send_json(result)
             elif parsed.path == "/api/scan":
-                self._send_json(scan_profile(self.config, payload.get("profile")))
+                result = scan_profile(self.config, payload.get("profile"))
+                _record_scan_event(self.config, payload.get("profile"), result)
+                self._send_json(result)
             else:
                 self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
         except Exception as exc:
@@ -143,6 +171,7 @@ def build_state(hub: HubConfig) -> dict[str, Any]:
             for name, server_names in sorted(profiles.items())
         ],
         "clients": ["codex", "claude-desktop", "cursor"],
+        "events": hub.load_events(),
     }
 
 
@@ -365,6 +394,43 @@ def _server_payload(server: ServerConfig, profiles: list[str]) -> dict[str, Any]
             for tool in server.tools
         ],
     }
+
+
+def _record_server_event(hub: HubConfig, payload: dict[str, Any], result: dict[str, Any]) -> None:
+    action = str(payload.get("action", "update"))
+    server = str(result.get("server", payload.get("name", "")))
+    if action == "create":
+        _record_event(hub, "server_create", server=server, transport=str(payload.get("transport", "stdio")))
+    elif action == "delete":
+        _record_event(hub, "server_delete", server=server)
+    else:
+        enabled = result.get("enabled")
+        if isinstance(enabled, bool):
+            _record_event(hub, "server_enable" if enabled else "server_disable", server=server)
+
+
+def _record_scan_event(hub: HubConfig, profile: object, result: dict[str, Any]) -> None:
+    results = result.get("results", [])
+    if not isinstance(results, list):
+        results = []
+    _record_event(
+        hub,
+        "scan",
+        profile=str(profile or "all"),
+        scanned=len(results),
+        changed=sum(1 for item in results if isinstance(item, dict) and item.get("changed")),
+        broken=sum(1 for item in results if isinstance(item, dict) and item.get("status") == "broken"),
+        skipped=sum(1 for item in results if isinstance(item, dict) and item.get("status") == "skipped"),
+    )
+
+
+def _record_event(hub: HubConfig, kind: str, **details: object) -> None:
+    event = {
+        "kind": kind,
+        "ts": datetime.now(UTC).isoformat(timespec="seconds").replace("+00:00", "Z"),
+        **details,
+    }
+    hub.append_event(event)
 
 
 def _export_server_config(server: ServerConfig) -> dict[str, object]:

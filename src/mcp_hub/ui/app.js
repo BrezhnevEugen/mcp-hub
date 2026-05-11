@@ -7,6 +7,8 @@ const I18N = {
   en: {
     add: "Add",
     actions: "Actions",
+    activityFeed: "Activity Feed",
+    activitySubtitle: "Latest registry, scan, export, and server events.",
     allProfiles: "all profiles",
     allProfileName: "all",
     availableActions: "Available Actions",
@@ -32,6 +34,14 @@ const I18N = {
     enable: "Enable",
     env: "Environment",
     export: "Export",
+    eventExport: "Exported {count} server(s) for {client}",
+    eventImport: "Imported {count} server(s) from {client}",
+    eventProfileUpdate: "Updated profile {profile}",
+    eventScan: "Scanned {count} server(s)",
+    eventServerCreate: "Added server {server}",
+    eventServerDelete: "Deleted server {server}",
+    eventServerDisable: "Disabled server {server}",
+    eventServerEnable: "Enabled server {server}",
     headers: "Headers",
     importedServers: "Imported {count} server(s)",
     import: "Import",
@@ -43,6 +53,7 @@ const I18N = {
     name: "Name",
     noActionsScanned: "No actions scanned yet",
     noDescription: "No description",
+    noEvents: "No events yet",
     noServersScanned: "No servers scanned",
     open: "Open",
     openCard: "Open Card",
@@ -60,6 +71,7 @@ const I18N = {
     scan: "Scan",
     scanToast: "Scan: {changed} changed, {broken} broken",
     scanOkSummary: "{count} action(s), {marker}",
+    scanStats: "{changed} changed, {broken} broken, {skipped} skipped",
     scanning: "Scanning...",
     searchServers: "Search servers",
     serverAdded: "Added {server}",
@@ -80,6 +92,8 @@ const I18N = {
   ru: {
     add: "Добавить",
     actions: "Навыки",
+    activityFeed: "Лента событий",
+    activitySubtitle: "Последние события реестра, сканирования, экспорта и серверов.",
     allProfiles: "все профили",
     allProfileName: "все",
     availableActions: "Доступные навыки",
@@ -105,6 +119,14 @@ const I18N = {
     enable: "Включить",
     env: "Окружение",
     export: "Экспорт",
+    eventExport: "Экспортировано серверов: {count} для {client}",
+    eventImport: "Импортировано серверов: {count} из {client}",
+    eventProfileUpdate: "Обновлён профиль {profile}",
+    eventScan: "Просканировано серверов: {count}",
+    eventServerCreate: "Добавлен сервер {server}",
+    eventServerDelete: "Удалён сервер {server}",
+    eventServerDisable: "Выключен сервер {server}",
+    eventServerEnable: "Включен сервер {server}",
     headers: "Заголовки",
     importedServers: "Импортировано серверов: {count}",
     import: "Импорт",
@@ -116,6 +138,7 @@ const I18N = {
     name: "Имя",
     noActionsScanned: "Навыки пока не просканированы",
     noDescription: "Нет описания",
+    noEvents: "Событий пока нет",
     noServersScanned: "Нет просканированных серверов",
     open: "Открыть",
     openCard: "Открыть карточку",
@@ -133,6 +156,7 @@ const I18N = {
     scan: "Сканирование",
     scanToast: "Сканирование: изменено {changed}, ошибок {broken}",
     scanOkSummary: "{count} навык(ов), {marker}",
+    scanStats: "изменено {changed}, ошибок {broken}, пропущено {skipped}",
     scanning: "Сканирование...",
     searchServers: "Поиск серверов",
     serverAdded: "Добавлен {server}",
@@ -284,7 +308,7 @@ const el = {
   activeTitle: document.querySelector("#activeTitle"),
   summaryLine: document.querySelector("#summaryLine"),
   searchBox: document.querySelector("#searchBox"),
-  detailsBody: document.querySelector("#detailsBody"),
+  activityFeed: document.querySelector("#activityFeed"),
   refreshBtn: document.querySelector("#refreshBtn"),
   sideAddOpenBtn: document.querySelector("#sideAddOpenBtn"),
   sideImportOpenBtn: document.querySelector("#sideImportOpenBtn"),
@@ -316,8 +340,7 @@ const el = {
   unitTitle: document.querySelector("#unitTitle"),
   unitSubtitle: document.querySelector("#unitSubtitle"),
   unitCardBody: document.querySelector("#unitCardBody"),
-  openUnitBtn: document.querySelector("#openUnitBtn"),
-  deleteBtn: document.querySelector("#deleteBtn"),
+  unitDeleteBtn: document.querySelector("#unitDeleteBtn"),
   toast: document.querySelector("#toast"),
 };
 
@@ -408,7 +431,7 @@ function render() {
   renderProfileFilter();
   renderScanProfileSelect();
   renderServers();
-  renderDetails();
+  renderActivityFeed();
   renderDocs();
 }
 
@@ -565,60 +588,75 @@ function renderServers() {
   }
 }
 
-function renderDetails() {
-  const server = state.servers.find((item) => item.name === selectedServer);
-  if (!server) {
-    el.detailsBody.innerHTML = "";
-    el.deleteBtn.disabled = true;
-    el.openUnitBtn.disabled = true;
-    return;
-  }
-  el.deleteBtn.disabled = false;
-  el.openUnitBtn.disabled = false;
-  const items = [
-    ["name", server.name],
-    ["transport", server.transport],
-    ["target", server.target],
-    ["profiles", server.profiles.join(", ") || "-"],
-    ["tags", server.tags.join(", ") || "-"],
-    ["actions", String(server.toolCount || 0)],
-    ["env", formatMap(server.env, server.envKeys)],
-    ["headers", formatMap(server.headers, server.headerKeys)],
-    ["description", server.description || "-"],
-  ];
-  const toolList = renderToolList(server.tools || []);
-  el.detailsBody.innerHTML = items.map(([label, value]) => `
-    <div class="detail-item">
-      <div class="detail-label">${escapeHtml(t(label))}</div>
-      <div class="detail-value mono">${escapeHtml(value)}</div>
-    </div>
-  `).join("") + `
-    <div class="detail-item full-span">
-      <div class="detail-label">${escapeHtml(t("availableActions"))}</div>
-      ${toolList}
-    </div>
-  `;
-}
-
 function renderPills(values) {
   if (!values.length) return `<span class="subtle">-</span>`;
   return `<div class="pill-list">${values.map((value) => `<span class="pill">${escapeHtml(value)}</span>`).join("")}</div>`;
 }
 
-function renderToolList(tools) {
-  if (!tools.length) {
-    return `<div class="empty-actions">${escapeHtml(t("noActionsScanned"))}</div>`;
+function renderActivityFeed() {
+  const events = state.events || [];
+  if (!events.length) {
+    el.activityFeed.innerHTML = `<div class="empty-actions">${escapeHtml(t("noEvents"))}</div>`;
+    return;
   }
-  return `
-    <div class="tool-list">
-      ${tools.map((tool) => `
-        <div class="tool-item">
-          <div class="tool-name mono">${escapeHtml(tool.name)}</div>
-          <div class="tool-description">${escapeHtml(tool.description || t("noDescription"))}</div>
-        </div>
-      `).join("")}
-    </div>
-  `;
+  el.activityFeed.innerHTML = events.map((event) => `
+    <article class="activity-item">
+      <div class="activity-dot ${escapeAttr(event.kind || "event")}"></div>
+      <div class="activity-main">
+        <div class="activity-title">${escapeHtml(eventTitle(event))}</div>
+        <div class="activity-meta">${escapeHtml(eventMeta(event))}</div>
+      </div>
+    </article>
+  `).join("");
+}
+
+function eventTitle(event) {
+  const params = {
+    server: event.server || "-",
+    client: event.client || "-",
+    profile: event.profile || "-",
+    count: event.count ?? event.serverCount ?? event.scanned ?? 0,
+  };
+  const titleByKind = {
+    export: "eventExport",
+    import: "eventImport",
+    profile_update: "eventProfileUpdate",
+    scan: "eventScan",
+    server_create: "eventServerCreate",
+    server_delete: "eventServerDelete",
+    server_disable: "eventServerDisable",
+    server_enable: "eventServerEnable",
+  };
+  return t(titleByKind[event.kind] || "activityFeed", params);
+}
+
+function eventMeta(event) {
+  const parts = [formatEventTime(event.ts)];
+  if (event.kind === "scan") {
+    parts.push(t("scanStats", {
+      changed: event.changed || 0,
+      broken: event.broken || 0,
+      skipped: event.skipped || 0,
+    }));
+  }
+  if (event.profile && event.kind !== "profile_update") {
+    parts.push(`${t("profile")}: ${event.profile}`);
+  }
+  if (Array.isArray(event.servers) && event.servers.length) {
+    parts.push(event.servers.slice(0, 4).join(", ") + (event.servers.length > 4 ? ", ..." : ""));
+  }
+  return parts.filter(Boolean).join(" · ");
+}
+
+function formatEventTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat(activeLocale === "ru" ? "ru-RU" : "en-US", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 function renderDocs() {
@@ -766,6 +804,9 @@ async function deleteSelectedServer() {
     body: JSON.stringify({ action: "delete", name: server.name }),
   });
   showToast(t("deleted", { server: server.name }));
+  if (el.unitDialog.open) {
+    el.unitDialog.close();
+  }
   selectedServer = serversForProfile(activeProfile).find((item) => item.name !== server.name)?.name || null;
   await loadState();
 }
@@ -777,6 +818,7 @@ async function exportProfile() {
   });
   const result = await api(`/api/export?${params.toString()}`);
   el.exportOutput.textContent = JSON.stringify(result, null, 2);
+  await loadState();
   el.exportDialog.showModal();
 }
 
@@ -883,8 +925,7 @@ el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
 el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));
 el.scanRunBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
-el.openUnitBtn.addEventListener("click", () => openUnitCard());
-el.deleteBtn.addEventListener("click", () => deleteSelectedServer().catch((error) => showToast(error.message)));
+el.unitDeleteBtn.addEventListener("click", () => deleteSelectedServer().catch((error) => showToast(error.message)));
 el.profileFilter.addEventListener("change", () => {
   activeProfile = el.profileFilter.value;
   selectedServer = serversForProfile(activeProfile)[0]?.name || null;

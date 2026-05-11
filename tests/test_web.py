@@ -29,6 +29,17 @@ def test_ui_assets_include_documentation_section() -> None:
     assert "openDocsDialog" in app_js
 
 
+def test_ui_assets_use_activity_feed_instead_of_main_details() -> None:
+    ui_files = resources.files("mcp_hub").joinpath("ui")
+    html = ui_files.joinpath("index.html").read_text(encoding="utf-8")
+    app_js = ui_files.joinpath("app.js").read_text(encoding="utf-8")
+
+    assert 'id="activityFeed"' in html
+    assert 'id="detailsBody"' not in html
+    assert "renderActivityFeed" in app_js
+    assert "renderDetails" not in app_js
+
+
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.init()
@@ -39,10 +50,20 @@ def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None
         "name": "MCP Hub",
         "version": "0.1.0",
         "catalogSchemaVersion": 1,
-        "uiStateVersion": 1,
+        "uiStateVersion": 2,
         "locales": ["en", "ru"],
         "defaultLocale": "ru",
     }
+
+
+def test_build_state_includes_recent_events(tmp_path: Path) -> None:
+    hub = HubConfig(tmp_path)
+    hub.init()
+    hub.append_event({"ts": "2026-05-11T10:00:00Z", "kind": "import", "count": 1})
+
+    state = build_state(hub)
+
+    assert state["events"] == [{"ts": "2026-05-11T10:00:00Z", "kind": "import", "count": 1}]
 
 
 def test_build_state_includes_server_tools(tmp_path: Path) -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ class HubConfig:
         self.registry_path = config_dir / "registry.yaml"
         self.profiles_path = config_dir / "profiles.yaml"
         self.snapshots_path = config_dir / "tool-snapshots.yaml"
+        self.events_path = config_dir / "events.jsonl"
 
     def init(self) -> None:
         self.config_dir.mkdir(parents=True, exist_ok=True)
@@ -76,6 +78,29 @@ class HubConfig:
         self.init()
         data = {"servers": {name: sorted(tools) for name, tools in sorted(snapshots.items())}}
         self._write_yaml(self.snapshots_path, data)
+
+    def load_events(self, limit: int = 30) -> list[dict[str, Any]]:
+        if not self.events_path.exists():
+            return []
+        events: list[dict[str, Any]] = []
+        with self.events_path.open("r", encoding="utf-8") as handle:
+            for line in handle:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(event, dict):
+                    events.append(event)
+        return events[-limit:][::-1]
+
+    def append_event(self, event: dict[str, Any]) -> None:
+        self.init()
+        self.events_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.events_path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
 
     def _read_yaml(self, path: Path, default: dict[str, Any]) -> dict[str, Any]:
         if not path.exists():
