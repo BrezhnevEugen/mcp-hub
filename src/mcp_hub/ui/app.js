@@ -29,6 +29,7 @@ const I18N = {
     disabledStatus: "disabled",
     disable: "Disable",
     documentTitle: "MCP Hub",
+    done: "Done",
     enabled: "Enabled",
     enabledStatus: "enabled",
     enable: "Enable",
@@ -64,8 +65,11 @@ const I18N = {
     profile: "Profile",
     profileName: "profile {profile}",
     profiles: "Profiles",
+    progressSummary: "Progress Summary",
+    progressSubtitle: "Operational state: stats, done, and remaining work.",
     refreshed: "Refreshed",
     remoteHttp: "remote http",
+    remaining: "Remaining",
     refresh: "Refresh",
     runScan: "Run Scan",
     scan: "Scan",
@@ -79,8 +83,26 @@ const I18N = {
     serverEnabled: "{server} enabled",
     serverSection: "Server",
     serverSummary: "{servers} server(s), {enabled} enabled, {profile}",
+    statistics: "Statistics",
+    statsActions: "Actions",
+    statsAssigned: "Assigned",
+    statsEvents: "Events",
+    statsProfiles: "Profiles",
+    statsScanned: "Scanned",
+    statsServers: "Servers",
     status: "Status",
     stdio: "Stdio",
+    taskActionsScanned: "{count} server(s) have scanned actions.",
+    taskAddServers: "Import or add MCP servers to start the catalog.",
+    taskCatalogReady: "Catalog has {count} server(s).",
+    taskEventsReady: "Activity history is enabled.",
+    taskExportReady: "Export is available for {count} client(s).",
+    taskProfilesReady: "{count} profile(s) are configured.",
+    taskReviewDisabled: "Review {count} disabled server(s).",
+    taskRunFirstEvent: "Run an operation to populate the activity history.",
+    taskScanMissing: "Scan {count} server(s) without action metadata.",
+    taskUnassigned: "Assign {count} server(s) to profiles.",
+    taskNoRemaining: "No open operational items.",
     tags: "Tags",
     target: "Target",
     transport: "Transport",
@@ -114,6 +136,7 @@ const I18N = {
     disabledStatus: "выключен",
     disable: "Выключить",
     documentTitle: "MCP Hub",
+    done: "Сделано",
     enabled: "Активные",
     enabledStatus: "включен",
     enable: "Включить",
@@ -149,8 +172,11 @@ const I18N = {
     profile: "Профиль",
     profileName: "профиль {profile}",
     profiles: "Профили",
+    progressSummary: "Сводка",
+    progressSubtitle: "Операционное состояние: статистика, сделано и что осталось.",
     refreshed: "Обновлено",
     remoteHttp: "remote http",
+    remaining: "Осталось",
     refresh: "Обновить",
     runScan: "Запустить сканирование",
     scan: "Сканирование",
@@ -164,8 +190,26 @@ const I18N = {
     serverEnabled: "{server} включен",
     serverSection: "Сервер",
     serverSummary: "{servers} сервер(ов), включено {enabled}, {profile}",
+    statistics: "Статистика",
+    statsActions: "Навыки",
+    statsAssigned: "В профилях",
+    statsEvents: "События",
+    statsProfiles: "Профили",
+    statsScanned: "Просканировано",
+    statsServers: "Серверы",
     status: "Статус",
     stdio: "Stdio",
+    taskActionsScanned: "У {count} сервер(ов) есть найденные навыки.",
+    taskAddServers: "Импортировать или добавить MCP-серверы в каталог.",
+    taskCatalogReady: "В каталоге {count} сервер(ов).",
+    taskEventsReady: "История событий включена.",
+    taskExportReady: "Экспорт доступен для {count} клиент(ов).",
+    taskProfilesReady: "Настроено профилей: {count}.",
+    taskReviewDisabled: "Проверить выключенные серверы: {count}.",
+    taskRunFirstEvent: "Выполнить операцию, чтобы наполнить историю событий.",
+    taskScanMissing: "Просканировать серверы без списка навыков: {count}.",
+    taskUnassigned: "Привязать серверы к профилям: {count}.",
+    taskNoRemaining: "Открытых операционных пунктов нет.",
     tags: "Теги",
     target: "Цель",
     transport: "Транспорт",
@@ -308,6 +352,9 @@ const el = {
   activeTitle: document.querySelector("#activeTitle"),
   summaryLine: document.querySelector("#summaryLine"),
   searchBox: document.querySelector("#searchBox"),
+  progressStats: document.querySelector("#progressStats"),
+  doneList: document.querySelector("#doneList"),
+  remainingList: document.querySelector("#remainingList"),
   activityFeed: document.querySelector("#activityFeed"),
   refreshBtn: document.querySelector("#refreshBtn"),
   sideAddOpenBtn: document.querySelector("#sideAddOpenBtn"),
@@ -430,6 +477,7 @@ function render() {
   renderCatalogStats();
   renderProfileFilter();
   renderScanProfileSelect();
+  renderProgressSummary();
   renderServers();
   renderActivityFeed();
   renderDocs();
@@ -501,6 +549,77 @@ function renderCatalogStats() {
   el.enabledCount.textContent = String(enabled);
   el.stdioCount.textContent = String(stdio);
   el.remoteCount.textContent = String(actions);
+}
+
+function renderProgressSummary() {
+  const metrics = progressMetrics();
+  const statItems = [
+    ["statsServers", metrics.serverCount],
+    ["enabled", metrics.enabledCount],
+    ["statsProfiles", metrics.profileCount],
+    ["statsAssigned", metrics.assignedCount],
+    ["statsScanned", metrics.scannedCount],
+    ["statsActions", metrics.actionCount],
+    ["statsEvents", metrics.eventCount],
+  ];
+  el.progressStats.innerHTML = statItems.map(([label, value]) => `
+    <div class="progress-stat">
+      <div class="progress-stat-value">${escapeHtml(value)}</div>
+      <div class="progress-stat-label">${escapeHtml(t(label))}</div>
+    </div>
+  `).join("");
+  el.doneList.innerHTML = renderProgressList(doneItems(metrics), "done");
+  el.remainingList.innerHTML = renderProgressList(remainingItems(metrics), "remaining");
+}
+
+function progressMetrics() {
+  const servers = state.servers || [];
+  const profileNames = (state.profiles || []).map((profile) => profile.name);
+  const configuredProfiles = (state.profiles || []).filter((profile) => profile.name !== "all");
+  return {
+    serverCount: servers.length,
+    enabledCount: servers.filter((server) => server.enabled).length,
+    disabledCount: servers.filter((server) => !server.enabled).length,
+    profileCount: configuredProfiles.length,
+    assignedCount: servers.filter((server) => (server.profiles || []).length).length,
+    unassignedCount: servers.filter((server) => !(server.profiles || []).length).length,
+    scannedCount: servers.filter((server) => (server.toolCount || 0) > 0).length,
+    unscannedCount: servers.filter((server) => (server.toolCount || 0) === 0 && server.transport === "stdio").length,
+    actionCount: servers.reduce((total, server) => total + (server.toolCount || 0), 0),
+    eventCount: (state.events || []).length,
+    exportClientCount: (state.clients || []).length,
+    hasDefaultProfile: profileNames.includes("default"),
+  };
+}
+
+function doneItems(metrics) {
+  const items = [];
+  if (metrics.serverCount) items.push(t("taskCatalogReady", { count: metrics.serverCount }));
+  if (metrics.profileCount) items.push(t("taskProfilesReady", { count: metrics.profileCount }));
+  if (metrics.scannedCount) items.push(t("taskActionsScanned", { count: metrics.scannedCount }));
+  if (metrics.exportClientCount) items.push(t("taskExportReady", { count: metrics.exportClientCount }));
+  items.push(t("taskEventsReady"));
+  return items;
+}
+
+function remainingItems(metrics) {
+  const items = [];
+  if (!metrics.serverCount) items.push(t("taskAddServers"));
+  if (metrics.unassignedCount) items.push(t("taskUnassigned", { count: metrics.unassignedCount }));
+  if (metrics.unscannedCount) items.push(t("taskScanMissing", { count: metrics.unscannedCount }));
+  if (metrics.disabledCount) items.push(t("taskReviewDisabled", { count: metrics.disabledCount }));
+  if (!metrics.eventCount) items.push(t("taskRunFirstEvent"));
+  if (!items.length) items.push(t("taskNoRemaining"));
+  return items;
+}
+
+function renderProgressList(items, tone) {
+  return items.map((item) => `
+    <div class="progress-item ${tone}">
+      <span class="progress-marker"></span>
+      <span>${escapeHtml(item)}</span>
+    </div>
+  `).join("");
 }
 
 function renderProfileFilter() {

@@ -40,6 +40,17 @@ def test_ui_assets_use_activity_feed_instead_of_main_details() -> None:
     assert "renderDetails" not in app_js
 
 
+def test_ui_assets_include_progress_summary() -> None:
+    ui_files = resources.files("mcp_hub").joinpath("ui")
+    html = ui_files.joinpath("index.html").read_text(encoding="utf-8")
+    app_js = ui_files.joinpath("app.js").read_text(encoding="utf-8")
+
+    assert 'id="progressStats"' in html
+    assert 'id="doneList"' in html
+    assert 'id="remainingList"' in html
+    assert "renderProgressSummary" in app_js
+
+
 def test_build_state_includes_app_versioning_and_locales(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.init()
