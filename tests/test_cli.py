@@ -1,4 +1,4 @@
-from mcp_hub.cli import _export_server_config, _format_command, _format_server_target
+from mcp_hub.cli import _format_command, _format_server_target, _server_client_config
 from mcp_hub.models import ServerConfig
 
 
@@ -26,7 +26,7 @@ def test_format_server_target_uses_url_for_remote_server() -> None:
     assert _format_server_target(server) == "https://example.com/mcp"
 
 
-def test_export_server_config_supports_remote_server() -> None:
+def test_server_client_config_supports_remote_server() -> None:
     server = ServerConfig(
         name="remote",
         transport="http",
@@ -34,7 +34,7 @@ def test_export_server_config_supports_remote_server() -> None:
         headers={"X-Goog-Api-Key": "secret"},
     )
 
-    assert _export_server_config(server) == {
+    assert _server_client_config(server) == {
         "url": "https://example.com/mcp",
         "headers": {"X-Goog-Api-Key": "secret"},
     }

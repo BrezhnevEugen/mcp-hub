@@ -5,7 +5,7 @@ from pathlib import Path
 from mcp_hub.config import HubConfig
 from mcp_hub.mcp_client import ToolInfo
 from mcp_hub.models import ServerConfig
-from mcp_hub.web import build_state, create_server, delete_server, export_profile, scan_profile, scan_server
+from mcp_hub.web import build_state, create_server, delete_server, get_profile_config, scan_profile, scan_server
 from mcp_hub.web import import_client
 
 
@@ -52,6 +52,18 @@ def test_ui_assets_include_progress_summary() -> None:
     assert 'id="serverCount"' not in html
     assert "renderProgressSummary" in app_js
     assert "renderCatalogStats" not in app_js
+
+
+def test_ui_assets_request_config_instead_of_exporting() -> None:
+    ui_files = resources.files("mcp_hub").joinpath("ui")
+    html = ui_files.joinpath("index.html").read_text(encoding="utf-8")
+    app_js = ui_files.joinpath("app.js").read_text(encoding="utf-8")
+
+    assert 'id="configBtn"' in html
+    assert 'id="configDialog"' in html
+    assert "/api/config?" in app_js
+    assert 'data-i18n="export"' not in html
+    assert "/api/export?" not in app_js
 
 
 def test_ui_manual_add_form_keeps_only_name_address_and_token() -> None:
@@ -169,7 +181,7 @@ def test_build_state_redacts_access_tokens(tmp_path: Path) -> None:
     assert servers["remote"]["headers"] == {"Authorization": "Bearer [redacted]"}
 
 
-def test_export_profile_supports_synthetic_all(tmp_path: Path) -> None:
+def test_profile_config_supports_synthetic_all(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.save_servers(
         {
@@ -179,12 +191,14 @@ def test_export_profile_supports_synthetic_all(tmp_path: Path) -> None:
     )
     hub.save_profiles({"default": ["enabled"]})
 
-    exported = export_profile(hub, "all", "codex")
+    config = get_profile_config(hub, "all", "codex")
 
-    assert sorted(exported["mcpServers"]) == ["enabled"]
+    assert config["profile"] == "all"
+    assert config["client"] == "codex"
+    assert sorted(config["mcpServers"]) == ["enabled"]
 
 
-def test_export_profile_keeps_access_tokens_for_agents(tmp_path: Path) -> None:
+def test_profile_config_keeps_access_tokens_for_agents(tmp_path: Path) -> None:
     hub = HubConfig(tmp_path)
     hub.save_servers(
         {
@@ -203,11 +217,13 @@ def test_export_profile_keeps_access_tokens_for_agents(tmp_path: Path) -> None:
     )
     hub.save_profiles({"default": ["stdio", "remote"]})
 
-    exported = export_profile(hub, "default", "codex")
+    config = get_profile_config(hub, "default", "codex")
 
-    assert exported["mcpServers"]["stdio"]["args"] == ["--token=stdio-secret"]
-    assert exported["mcpServers"]["stdio"]["env"] == {"API_TOKEN": "env-secret"}
-    assert exported["mcpServers"]["remote"]["headers"] == {"Authorization": "Bearer remote-secret"}
+    assert config["profile"] == "default"
+    assert config["client"] == "codex"
+    assert config["mcpServers"]["stdio"]["args"] == ["--token=stdio-secret"]
+    assert config["mcpServers"]["stdio"]["env"] == {"API_TOKEN": "env-secret"}
+    assert config["mcpServers"]["remote"]["headers"] == {"Authorization": "Bearer remote-secret"}
 
 
 def test_create_server_adds_stdio_server_to_profile(tmp_path: Path) -> None:

@@ -60,14 +60,14 @@ class MCPHubHandler(BaseHTTPRequestHandler):
                 self._send_asset("app.js", "application/javascript; charset=utf-8")
             elif parsed.path == "/api/state":
                 self._send_json(build_state(self.config))
-            elif parsed.path == "/api/export":
+            elif parsed.path in {"/api/config", "/api/export"}:
                 params = parse_qs(parsed.query)
                 profile = _single(params, "profile", "default")
                 client = _single(params, "client", "codex")
-                payload = export_profile(self.config, profile, client)
+                payload = get_profile_config(self.config, profile, client)
                 _record_event(
                     self.config,
-                    "export",
+                    "config_request",
                     client=client,
                     profile=profile,
                     serverCount=len(payload.get("mcpServers", {})),
@@ -300,7 +300,7 @@ def update_profile(hub: HubConfig, payload: dict[str, Any]) -> dict[str, Any]:
     return {"profile": name, "servers": server_names}
 
 
-def export_profile(hub: HubConfig, profile: str, client: str) -> dict[str, Any]:
+def get_profile_config(hub: HubConfig, profile: str, client: str) -> dict[str, Any]:
     if client not in {"codex", "claude-desktop", "cursor"}:
         raise ValueError(f"unsupported client: {client}")
     servers = hub.load_servers()
@@ -312,8 +312,10 @@ def export_profile(hub: HubConfig, profile: str, client: str) -> dict[str, Any]:
     else:
         raise ValueError(f"unknown profile: {profile}")
     return {
+        "profile": profile,
+        "client": client,
         "mcpServers": {
-            name: _export_server_config(servers[name])
+            name: _server_client_config(servers[name])
             for name in selected_names
         }
     }
@@ -455,7 +457,7 @@ def _record_event(hub: HubConfig, kind: str, **details: object) -> None:
     hub.append_event(event)
 
 
-def _export_server_config(server: ServerConfig) -> dict[str, object]:
+def _server_client_config(server: ServerConfig) -> dict[str, object]:
     if server.transport == "http":
         return {
             "url": server.url,

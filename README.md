@@ -2,7 +2,7 @@
 
 Personal registry and operations CLI for MCP servers.
 
-MCP Hub keeps a local catalog of MCP servers, stores their discovered tools/actions, groups servers into access profiles, checks whether they respond to `tools/list`, and exports client config for agents.
+MCP Hub keeps a local catalog of MCP servers, stores their discovered tools/actions, groups servers into access profiles, checks whether they respond to `tools/list`, and serves client config to agents on request.
 
 ## MVP scope
 
@@ -10,8 +10,8 @@ MCP Hub keeps a local catalog of MCP servers, stores their discovered tools/acti
 - Store server metadata and discovered actions in `registry.yaml`.
 - Store access profiles in `profiles.yaml`.
 - Inspect a server by starting it and calling `tools/list`.
-- Export `mcpServers` JSON for Codex, Claude Desktop, and Cursor-compatible clients.
-- Run a local visual interface for adding, deleting, importing, exporting, and toggling MCP servers.
+- Serve `mcpServers` JSON for Codex, Claude Desktop, and Cursor-compatible clients.
+- Run a local visual interface for adding, deleting, importing, serving profile config, and toggling MCP servers.
 
 ## Install for development
 
@@ -36,7 +36,7 @@ mcp-hub show yt-sub
 mcp-hub inspect yt-sub
 mcp-hub profile content yt-sub
 mcp-hub scan --profile content
-mcp-hub export codex --profile content
+mcp-hub config codex --profile content
 mcp-hub ui
 ```
 
@@ -116,7 +116,7 @@ profiles:
 ## Roadmap
 
 - Add environment variable management and secret references.
-- Add audit logs for inspect/status/export.
+- Add audit logs for inspect/status/config requests.
 - Add remote deployment helpers for sensitive infrastructure MCP servers.
 
 ## Periodic capability checks

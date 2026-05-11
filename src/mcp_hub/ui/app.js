@@ -12,7 +12,7 @@ const I18N = {
     accessToken: "Token",
     actions: "Actions",
     activityFeed: "Activity Feed",
-    activitySubtitle: "Latest registry, scan, export, and server events.",
+    activitySubtitle: "Latest registry, scan, config, and server events.",
     allProfiles: "all profiles",
     allProfileName: "all",
     availableActions: "Available Actions",
@@ -22,14 +22,16 @@ const I18N = {
     client: "Client",
     close: "Close",
     command: "Command",
+    configEndpoint: "Config Endpoint",
+    configResponse: "Config Response",
     delete: "Delete",
     deleteConfirm: "Delete {server} from MCP Hub?",
     deleted: "Deleted {server}",
     description: "Description",
     details: "Details",
     documentation: "Documentation",
-    documentationIntro: "Local guide for registry, profiles, scans, exports, and agent handoff.",
-    documentationSubtitle: "How MCP Hub stores, checks, and exports MCP servers.",
+    documentationIntro: "Local guide for registry, profiles, scans, config requests, and agent handoff.",
+    documentationSubtitle: "How MCP Hub stores, checks, and serves MCP server config.",
     disabledStatus: "disabled",
     disable: "Disable",
     documentTitle: "MCP Hub",
@@ -38,8 +40,7 @@ const I18N = {
     enabledStatus: "enabled",
     enable: "Enable",
     env: "Environment",
-    export: "Export",
-    eventExport: "Exported {count} server(s) for {client}",
+    eventConfigRequest: "Served config for {count} server(s) to {client}",
     eventImport: "Imported {count} server(s) from {client}",
     eventProfileUpdate: "Updated profile {profile}",
     eventScan: "Scanned {count} server(s)",
@@ -48,6 +49,7 @@ const I18N = {
     eventServerDisable: "Disabled server {server}",
     eventServerEnable: "Enabled server {server}",
     headers: "Headers",
+    getConfig: "Get Config",
     importedServers: "Imported {count} server(s)",
     import: "Import",
     invalidAddress: "Enter a valid URL or hostname",
@@ -104,7 +106,7 @@ const I18N = {
     taskAddServers: "Import or add MCP servers to start the catalog.",
     taskCatalogReady: "Catalog has {count} server(s).",
     taskEventsReady: "Activity history is enabled.",
-    taskExportReady: "Export is available for {count} client(s).",
+    taskConfigReady: "Config endpoint supports {count} client(s).",
     taskProfilesReady: "{count} profile(s) are configured.",
     taskReviewDisabled: "Review {count} disabled server(s).",
     taskRunFirstEvent: "Run an operation to populate the activity history.",
@@ -129,7 +131,7 @@ const I18N = {
     accessToken: "Токен",
     actions: "Навыки",
     activityFeed: "Лента событий",
-    activitySubtitle: "Последние события реестра, сканирования, экспорта и серверов.",
+    activitySubtitle: "Последние события реестра, сканирования, настроек и серверов.",
     allProfiles: "все профили",
     allProfileName: "все",
     availableActions: "Доступные навыки",
@@ -139,14 +141,16 @@ const I18N = {
     client: "Клиент",
     close: "Закрыть",
     command: "Команда",
+    configEndpoint: "Настройки",
+    configResponse: "Ответ Hub",
     delete: "Удалить",
     deleteConfirm: "Удалить {server} из MCP Hub?",
     deleted: "Удален {server}",
     description: "Описание",
     details: "Детали",
     documentation: "Документация",
-    documentationIntro: "Короткая справка по реестру, профилям, сканированию, экспорту и передаче агентам.",
-    documentationSubtitle: "Как MCP Hub хранит, проверяет и экспортирует MCP-серверы.",
+    documentationIntro: "Короткая справка по реестру, профилям, сканированию, запросам настроек и передаче агентам.",
+    documentationSubtitle: "Как MCP Hub хранит, проверяет и отдает настройки MCP-серверов.",
     disabledStatus: "выключен",
     disable: "Выключить",
     documentTitle: "MCP Hub",
@@ -155,8 +159,7 @@ const I18N = {
     enabledStatus: "включен",
     enable: "Включить",
     env: "Окружение",
-    export: "Экспорт",
-    eventExport: "Экспортировано серверов: {count} для {client}",
+    eventConfigRequest: "Отданы настройки серверов: {count} для {client}",
     eventImport: "Импортировано серверов: {count} из {client}",
     eventProfileUpdate: "Обновлён профиль {profile}",
     eventScan: "Просканировано серверов: {count}",
@@ -165,6 +168,7 @@ const I18N = {
     eventServerDisable: "Выключен сервер {server}",
     eventServerEnable: "Включен сервер {server}",
     headers: "Заголовки",
+    getConfig: "Получить настройки",
     importedServers: "Импортировано серверов: {count}",
     import: "Импорт",
     invalidAddress: "Введите корректный URL или домен",
@@ -221,7 +225,7 @@ const I18N = {
     taskAddServers: "Импортировать или добавить MCP-серверы в каталог.",
     taskCatalogReady: "В каталоге {count} сервер(ов).",
     taskEventsReady: "История событий включена.",
-    taskExportReady: "Экспорт доступен для {count} клиент(ов).",
+    taskConfigReady: "Endpoint настроек поддерживает {count} клиент(ов).",
     taskProfilesReady: "Настроено профилей: {count}.",
     taskReviewDisabled: "Проверить выключенные серверы: {count}.",
     taskRunFirstEvent: "Выполнить операцию, чтобы наполнить историю событий.",
@@ -247,36 +251,36 @@ const DOCS = {
       body: "MCP Hub is a local registry for MCP servers. It keeps server launch details, tags, profile membership, discovered actions, and the config paths used by this project.",
       items: [
         "registry.yaml stores servers, commands, URLs, headers, environment values, tags, descriptions, and scanned actions.",
-        "profiles.yaml stores named access sets that can be exported to agents.",
+        "profiles.yaml stores named access sets that agents can request from the hub.",
         "tool-snapshots.yaml stores action-name snapshots so scans can detect capability drift.",
       ],
     },
     {
       title: "Daily Workflow",
-      body: "Use the catalog as the source of truth, then sync it outward to the agent clients that need access.",
+      body: "Use the catalog as the source of truth. Agents or adapters ask the hub for the profile config they need.",
       items: [
         "Import existing MCP servers from Codex, Claude Desktop, or Cursor.",
         "Open a server card to inspect transport, command or URL, tokens, profiles, tags, and available actions.",
         "Scan profiles periodically to refresh the action list and detect changes.",
-        "Export a profile when an agent should receive the selected server set.",
+        "Request a profile config when an agent should receive the selected server set.",
       ],
     },
     {
       title: "Profiles",
       body: "A profile is a named set of MCP servers. Profiles let you expose only the servers an agent needs for a task.",
       items: [
-        "The synthetic all profile exports every enabled server.",
-        "Disabled servers stay in the registry but are skipped during export and scans.",
+        "The synthetic all profile returns every enabled server.",
+        "Disabled servers stay in the registry but are skipped during config requests and scans.",
         "Profiles are intentionally small: they are access groups, not duplicated server definitions.",
       ],
     },
     {
-      title: "Import, Scan, Export",
+      title: "Import, Scan, Config",
       body: "The three operational cards handle the main maintenance loop.",
       items: [
         "Import reads client config and merges servers into the local registry.",
         "Scan connects to stdio or remote HTTP servers, calls tools/list, then stores readable action names and descriptions.",
-        "Export produces mcpServers JSON for Codex, Claude Desktop, or Cursor-compatible clients.",
+        "Config requests return mcpServers JSON for Codex, Claude Desktop, or Cursor-compatible clients.",
       ],
     },
     {
@@ -284,8 +288,8 @@ const DOCS = {
       body: "This UI runs in your local environment and masks token-like values in normal server views.",
       items: [
         "Command args, URLs, headers, and env values are redacted when they look sensitive.",
-        "Exports preserve those values so agents can actually connect to the MCP servers.",
-        "Treat exported JSON as sensitive when tokens are present.",
+        "Config responses preserve those values so agents can actually connect to the MCP servers.",
+        "Treat config responses as sensitive when tokens are present.",
       ],
     },
     {
@@ -304,36 +308,36 @@ const DOCS = {
       body: "MCP Hub - локальный реестр MCP-серверов. Он хранит параметры запуска, теги, привязку к профилям, найденные навыки и пути конфигурации текущего проекта.",
       items: [
         "registry.yaml хранит серверы, команды, URL, заголовки, переменные окружения, теги, описания и найденные навыки.",
-        "profiles.yaml хранит именованные наборы доступа, которые можно экспортировать агентам.",
+        "profiles.yaml хранит именованные наборы доступа, которые агент может запросить у Hub.",
         "tool-snapshots.yaml хранит снимки названий навыков, чтобы сканирование видело изменения возможностей.",
       ],
     },
     {
       title: "Рабочий цикл",
-      body: "Каталог служит источником правды, а затем нужные наборы серверов передаются наружу в агентские клиенты.",
+      body: "Каталог служит источником правды. Агент или адаптер запрашивает у Hub настройки нужного профиля.",
       items: [
         "Импортируй существующие MCP-серверы из Codex, Claude Desktop или Cursor.",
         "Открывай карточку сервера, чтобы увидеть транспорт, команду или URL, профили, теги и доступные навыки.",
         "Периодически сканируй профили, чтобы обновлять список навыков и видеть изменения.",
-        "Экспортируй профиль, когда агенту нужно выдать выбранный набор серверов.",
+        "Запроси настройки профиля, когда агенту нужен выбранный набор серверов.",
       ],
     },
     {
       title: "Профили",
       body: "Профиль - это именованный набор MCP-серверов. Он позволяет выдать агенту только те серверы, которые нужны для задачи.",
       items: [
-        "Синтетический профиль все экспортирует каждый включенный сервер.",
-        "Выключенные серверы остаются в реестре, но пропускаются при экспорте и сканировании.",
+        "Синтетический профиль все возвращает каждый включенный сервер.",
+        "Выключенные серверы остаются в реестре, но пропускаются в ответах с настройками и при сканировании.",
         "Профили специально небольшие: это группы доступа, а не копии серверных настроек.",
       ],
     },
     {
-      title: "Импорт, сканирование, экспорт",
+      title: "Импорт, сканирование, настройки",
       body: "Три операционные карточки закрывают основной цикл обслуживания.",
       items: [
         "Импорт читает конфиги клиентов и объединяет серверы с локальным реестром.",
         "Сканирование подключается к stdio или remote HTTP серверам, вызывает tools/list и сохраняет читаемые названия и описания навыков.",
-        "Экспорт формирует mcpServers JSON для Codex, Claude Desktop или Cursor-совместимых клиентов.",
+        "Запрос настроек возвращает mcpServers JSON для Codex, Claude Desktop или Cursor-совместимых клиентов.",
       ],
     },
     {
@@ -341,8 +345,8 @@ const DOCS = {
       body: "Этот UI работает в твоем локальном окружении и маскирует значения, похожие на токены.",
       items: [
         "Command args, URL, headers и env редактируются, если выглядят чувствительными.",
-        "Экспорт сохраняет эти значения, чтобы агенты действительно могли подключиться к MCP-серверам.",
-        "Экспортированный JSON стоит считать чувствительным, если в нем есть токены.",
+        "Ответы с настройками сохраняют эти значения, чтобы агенты действительно могли подключиться к MCP-серверам.",
+        "Ответ с настройками стоит считать чувствительным, если в нем есть токены.",
       ],
     },
     {
@@ -392,10 +396,10 @@ const el = {
   scanProfileSelect: document.querySelector("#scanProfileSelect"),
   scanRunBtn: document.querySelector("#scanRunBtn"),
   scanResult: document.querySelector("#scanResult"),
-  exportClient: document.querySelector("#exportClient"),
-  exportBtn: document.querySelector("#exportBtn"),
-  exportDialog: document.querySelector("#exportDialog"),
-  exportOutput: document.querySelector("#exportOutput"),
+  configClient: document.querySelector("#configClient"),
+  configBtn: document.querySelector("#configBtn"),
+  configDialog: document.querySelector("#configDialog"),
+  configOutput: document.querySelector("#configOutput"),
   unitDialog: document.querySelector("#unitDialog"),
   unitTitle: document.querySelector("#unitTitle"),
   unitSubtitle: document.querySelector("#unitSubtitle"),
@@ -535,7 +539,7 @@ function renderVersionBadge() {
 }
 
 function renderClientSelects() {
-  for (const select of [el.importClient, el.exportClient]) {
+  for (const select of [el.importClient, el.configClient]) {
     if (select.options.length) continue;
     for (const client of state.clients) {
       const option = document.createElement("option");
@@ -582,7 +586,7 @@ function progressMetrics() {
     unscannedCount: servers.filter((server) => (server.toolCount || 0) === 0 && server.transport === "stdio").length,
     actionCount: servers.reduce((total, server) => total + (server.toolCount || 0), 0),
     eventCount: (state.events || []).length,
-    exportClientCount: (state.clients || []).length,
+    configClientCount: (state.clients || []).length,
     hasDefaultProfile: profileNames.includes("default"),
   };
 }
@@ -592,7 +596,7 @@ function doneItems(metrics) {
   if (metrics.serverCount) items.push(t("taskCatalogReady", { count: metrics.serverCount }));
   if (metrics.profileCount) items.push(t("taskProfilesReady", { count: metrics.profileCount }));
   if (metrics.scannedCount) items.push(t("taskActionsScanned", { count: metrics.scannedCount }));
-  if (metrics.exportClientCount) items.push(t("taskExportReady", { count: metrics.exportClientCount }));
+  if (metrics.configClientCount) items.push(t("taskConfigReady", { count: metrics.configClientCount }));
   items.push(t("taskEventsReady"));
   return items;
 }
@@ -732,7 +736,8 @@ function eventTitle(event) {
     count: event.count ?? event.serverCount ?? event.scanned ?? 0,
   };
   const titleByKind = {
-    export: "eventExport",
+    config_request: "eventConfigRequest",
+    export: "eventConfigRequest",
     import: "eventImport",
     profile_update: "eventProfileUpdate",
     scan: "eventScan",
@@ -972,15 +977,15 @@ async function deleteSelectedServer() {
   await loadState();
 }
 
-async function exportProfile() {
+async function requestProfileConfig() {
   const params = new URLSearchParams({
-    client: el.exportClient.value,
+    client: el.configClient.value,
     profile: activeProfile,
   });
-  const result = await api(`/api/export?${params.toString()}`);
-  el.exportOutput.textContent = JSON.stringify(result, null, 2);
+  const result = await api(`/api/config?${params.toString()}`);
+  el.configOutput.textContent = JSON.stringify(result, null, 2);
   await loadState();
-  el.exportDialog.showModal();
+  el.configDialog.showModal();
 }
 
 async function scanProfile() {
@@ -1083,7 +1088,7 @@ el.sideScanOpenBtn.addEventListener("click", openScanDialog);
 el.docsOpenBtn.addEventListener("click", openDocsDialog);
 el.addBtn.addEventListener("click", () => addServer().catch((error) => showToast(error.message)));
 el.importBtn.addEventListener("click", () => importServers().catch((error) => showToast(error.message)));
-el.exportBtn.addEventListener("click", () => exportProfile().catch((error) => showToast(error.message)));
+el.configBtn.addEventListener("click", () => requestProfileConfig().catch((error) => showToast(error.message)));
 el.scanRunBtn.addEventListener("click", () => scanProfile().catch((error) => showToast(error.message)));
 el.unitDeleteBtn.addEventListener("click", () => deleteSelectedServer().catch((error) => showToast(error.message)));
 el.profileFilter.addEventListener("change", () => {

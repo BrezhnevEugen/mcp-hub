@@ -22,6 +22,10 @@ from .web import serve_ui
 
 
 def main(argv: list[str] | None = None) -> int:
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    if "export" in raw_args:
+        raw_args[raw_args.index("export")] = "config"
+
     parser = argparse.ArgumentParser(prog="mcp-hub", description="Manage personal MCP servers.")
     parser.add_argument("--home", help="Config directory. Defaults to ~/.mcp-hub or MCP_HUB_HOME.")
     subparsers = parser.add_subparsers(dest="subcommand", required=True)
@@ -64,9 +68,9 @@ def main(argv: list[str] | None = None) -> int:
     profile_parser.add_argument("name")
     profile_parser.add_argument("servers", nargs="*")
 
-    export_parser = subparsers.add_parser("export", help="Export MCP config for a client.")
-    export_parser.add_argument("client", choices=["codex", "claude-desktop", "cursor"])
-    export_parser.add_argument("--profile", default="default")
+    config_parser = subparsers.add_parser("config", help="Print MCP config for a client/profile request.")
+    config_parser.add_argument("client", choices=["codex", "claude-desktop", "cursor"])
+    config_parser.add_argument("--profile", default="default")
 
     proxy_parser = subparsers.add_parser("proxy", help="Bridge an HTTP MCP server from the hub over stdio.")
     proxy_parser.add_argument("name")
@@ -86,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     ui_parser.add_argument("--host", default="127.0.0.1")
     ui_parser.add_argument("--port", type=int, default=8765)
 
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_args)
     hub = HubConfig() if args.home is None else HubConfig(config_dir=Path(args.home).expanduser())
 
     try:
@@ -215,8 +219,8 @@ def _dispatch(args: argparse.Namespace, hub: HubConfig) -> int:
         print(f"profile {args.name}: {', '.join(args.servers) if args.servers else '(empty)'}")
         return 0
 
-    if args.subcommand == "export":
-        payload = _export_config(hub, args.profile)
+    if args.subcommand == "config":
+        payload = _profile_config(hub, args.profile, args.client)
         print(json.dumps(payload, indent=2, ensure_ascii=False))
         return 0
 
@@ -267,7 +271,9 @@ def _servers_for_status(hub: HubConfig, profile: str | None) -> list[ServerConfi
     return [servers[name] for name in profiles[profile] if name in servers and servers[name].enabled]
 
 
-def _export_config(hub: HubConfig, profile: str) -> dict[str, object]:
+def _profile_config(hub: HubConfig, profile: str, client: str) -> dict[str, object]:
+    if client not in {"codex", "claude-desktop", "cursor"}:
+        raise ValueError(f"unsupported client: {client}")
     servers = hub.load_servers()
     profiles = hub.load_profiles()
     if profile not in profiles:
@@ -275,9 +281,11 @@ def _export_config(hub: HubConfig, profile: str) -> dict[str, object]:
 
     selected = {name: servers[name] for name in profiles[profile] if name in servers and servers[name].enabled}
     return {
+        "profile": profile,
+        "client": client,
         "mcpServers": {
             name: {
-                **_export_server_config(server),
+                **_server_client_config(server),
             }
             for name, server in selected.items()
         }
@@ -315,7 +323,7 @@ def _import_servers(client: str, path: Path | None) -> dict[str, ServerConfig]:
     raise ValueError(f"unsupported import client: {client}")
 
 
-def _export_server_config(server: ServerConfig) -> dict[str, object]:
+def _server_client_config(server: ServerConfig) -> dict[str, object]:
     if server.transport == "http":
         return {
             "url": server.url,
